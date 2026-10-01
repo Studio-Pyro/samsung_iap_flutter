@@ -52,6 +52,8 @@ android {
 }
 
 dependencies {
+    // Exact pin: key SDK behaviors were read from 6.5.2 bytecode, so every bump needs re-verification.
+    implementation 'com.samsung.developer:iap:6.5.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
 
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
