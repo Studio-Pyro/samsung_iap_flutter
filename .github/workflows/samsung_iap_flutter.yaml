@@ -44,7 +44,7 @@ jobs:
         working-directory: samsung_iap_flutter/example
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v3
         with:
           distribution: "temurin"
