@@ -50,6 +50,7 @@ jobs:
           flutter pub get
           dart run pigeon --input pigeons/messages.dart
           dart format lib/src/messages.g.dart
+          git add -N .
           git diff --exit-code
 
       - name: Generate gradlew and local.properties
