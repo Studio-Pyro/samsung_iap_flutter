@@ -1,4 +1,10 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:samsung_iap_flutter_platform_interface/src/enums.dart';
+import 'package:samsung_iap_flutter_platform_interface/src/product.dart';
+
+export 'src/enums.dart';
+export 'src/exception.dart';
+export 'src/product.dart';
 
 /// {@template samsung_iap_flutter_platform}
 /// The interface that implementations of
@@ -37,6 +43,28 @@ abstract class SamsungIapFlutterPlatform extends PlatformInterface {
   /// Return the current platform name.
   Future<String?> getPlatformName() {
     throw UnimplementedError('getPlatformName() has not been implemented.');
+  }
+
+  /// Sets the operation mode and whether Samsung shows its own error dialogs.
+  Future<void> initialize({
+    required OperationMode mode,
+    required bool showErrorDialog,
+  }) {
+    throw UnimplementedError('initialize() has not been implemented.');
+  }
+
+  /// Reports whether Galaxy Store can serve purchases, without showing a
+  /// dialog.
+  Future<GalaxyStoreStatus> getGalaxyStoreStatus() {
+    throw UnimplementedError(
+      'getGalaxyStoreStatus() has not been implemented.',
+    );
+  }
+
+  /// Fetches the products with [productIds], or every product when it is
+  /// empty.
+  Future<List<SamsungProduct>> getProducts(List<String> productIds) {
+    throw UnimplementedError('getProducts() has not been implemented.');
   }
 }
 
