@@ -32,6 +32,22 @@ void main() {
       expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
     });
 
+    test('getOwnedProducts fails fast with storeUnavailable', () async {
+      final stopwatch = Stopwatch()..start();
+
+      await expectLater(
+        iap.getOwnedProducts(),
+        throwsA(
+          isA<SamsungIapException>().having(
+            (e) => e.kind,
+            'kind',
+            SamsungIapErrorKind.storeUnavailable,
+          ),
+        ),
+      );
+      expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
+    });
+
     testWidgets('the example shows the store status and the error', (
       tester,
     ) async {
@@ -43,6 +59,10 @@ void main() {
       expect(find.text('Galaxy Store: notInstalled'), findsOneWidget);
 
       await tester.tap(find.text('Get products'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('storeUnavailable'), findsOneWidget);
+
+      await tester.tap(find.text('Get owned products'));
       await tester.pumpAndSettle();
       expect(find.textContaining('storeUnavailable'), findsOneWidget);
     });

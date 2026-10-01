@@ -40,11 +40,15 @@ samsungIap.applicationId=<package registered in Seller Portal>
 
 Then run the device tests on the Samsung device. They use TEST mode, so sign in to Galaxy Store as a
 license tester. Pass the product IDs to fetch as a comma-separated list. Without the define, the
-tests fetch every product of the app.
+tests fetch every product of the app. Pass the IDs of products the tester already owns in
+`SAMSUNG_IAP_OWNED_IDS`, and the tests check that each one is in the owned list. Without it, the
+tests check only the products that are owned.
 
 ```sh
 cd samsung_iap_flutter/example
-flutter test integration_test/device_test.dart --dart-define=SAMSUNG_IAP_PRODUCT_IDS=<id1>,<id2>
+flutter test integration_test/device_test.dart \
+  --dart-define=SAMSUNG_IAP_PRODUCT_IDS=<id1>,<id2> \
+  --dart-define=SAMSUNG_IAP_OWNED_IDS=<owned id>
 ```
 
 Some checks cannot be automated. Do them by hand in the example app, which starts in TEST mode:
@@ -52,7 +56,8 @@ Some checks cannot be automated. Do them by hand in the example app, which start
 1. Disable Galaxy Store in the system settings.
 2. Tap **Initialize**. The app shows `Galaxy Store: disabled`.
 3. Tap **Get products**. The app shows a `storeUnavailable` error at once, without a Samsung dialog.
-4. Enable Galaxy Store again.
+4. Tap **Get owned products**. The app shows the same error.
+5. Enable Galaxy Store again.
 
 ## Pigeon bindings 🐦
 

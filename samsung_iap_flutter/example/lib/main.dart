@@ -35,6 +35,7 @@ class _HomePageState extends State<HomePage> {
   bool _initialized = false;
   GalaxyStoreStatus? _status;
   List<SamsungProduct>? _products;
+  List<OwnedProduct>? _owned;
   String? _error;
 
   Future<void> _run(Future<void> Function() action) async {
@@ -60,9 +61,15 @@ class _HomePageState extends State<HomePage> {
     setState(() => _products = products);
   });
 
+  Future<void> _getOwnedProducts() => _run(() async {
+    final owned = await _iap.getOwnedProducts();
+    setState(() => _owned = owned);
+  });
+
   @override
   Widget build(BuildContext context) {
     final products = _products;
+    final owned = _owned;
     return Scaffold(
       appBar: AppBar(title: const Text('Samsung IAP Example')),
       body: ListView(
@@ -85,6 +92,11 @@ class _HomePageState extends State<HomePage> {
             onPressed: _initialized ? _getProducts : null,
             child: const Text('Get products'),
           ),
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: _initialized ? _getOwnedProducts : null,
+            child: const Text('Get owned products'),
+          ),
           if (_error case final error?)
             Text(
               error,
@@ -96,6 +108,13 @@ class _HomePageState extends State<HomePage> {
               title: Text(product.name),
               subtitle: Text(_describe(product)),
               trailing: Text(product.formattedPrice),
+            ),
+          if (owned != null) Text('${owned.length} owned products'),
+          for (final product in owned ?? const <OwnedProduct>[])
+            ListTile(
+              title: Text(product.name),
+              subtitle: Text(_describeOwned(product)),
+              trailing: Text(product.acknowledgedStatus.name),
             ),
         ],
       ),
@@ -110,5 +129,13 @@ class _HomePageState extends State<HomePage> {
     if (product.freeTrialDays case final days?) '$days-day trial',
     if (product.introductoryOffer case final offer?)
       '${offer.formattedPrice} for ${offer.cycles} periods',
+  ].join(' · ');
+
+  static String _describeOwned(OwnedProduct product) => [
+    product.productId,
+    product.purchaseId,
+    if (product.subscriptionEndDate case final end?) 'until $end',
+    if (product.priceChange case final change?)
+      'price change to ${change.newFormattedPrice}',
   ].join(' · ');
 }
