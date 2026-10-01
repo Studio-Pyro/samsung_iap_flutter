@@ -11,7 +11,7 @@ flutter:
     implements: samsung_iap_flutter
     platforms:
       android:
-        package: com.example.verygoodcore
+        package: dev.studiopyro.samsung_iap_flutter
         pluginClass: SamsungIapFlutterPlugin
         dartPluginClass: SamsungIapFlutterAndroid
 

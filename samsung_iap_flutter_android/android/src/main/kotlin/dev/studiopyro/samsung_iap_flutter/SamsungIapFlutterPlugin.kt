@@ -1,13 +1,8 @@
-package com.example.verygoodcore
+package dev.studiopyro.samsung_iap_flutter
 
-import SamsungIapFlutterApi
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 
 class SamsungIapFlutterPlugin : FlutterPlugin, SamsungIapFlutterApi {
-    companion object {
-        private const val TAG = "SamsungIapFlutterPlugin"
-    }
-
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         SamsungIapFlutterApi.setUp(binding.binaryMessenger, this)
     }
@@ -16,7 +11,5 @@ class SamsungIapFlutterPlugin : FlutterPlugin, SamsungIapFlutterApi {
         SamsungIapFlutterApi.setUp(binding.binaryMessenger, null)
     }
 
-    override fun getPlatformName(callback: (Result<String?>) -> Unit) {
-        callback(Result.success("Android ${android.os.Build.VERSION.RELEASE}"))
-    }
+    override suspend fun getPlatformName(): String = "Android ${android.os.Build.VERSION.RELEASE}"
 }
