@@ -9,12 +9,16 @@ on:
     paths:
       - ".github/workflows/samsung_iap_flutter.yaml"
       - "samsung_iap_flutter/**"
+      - "samsung_iap_flutter_android/**"
+      - "samsung_iap_flutter_platform_interface/**"
   push:
     branches:
       - main
     paths:
       - ".github/workflows/samsung_iap_flutter.yaml"
       - "samsung_iap_flutter/**"
+      - "samsung_iap_flutter_android/**"
+      - "samsung_iap_flutter_platform_interface/**"
 
 jobs:
   spell-check:
