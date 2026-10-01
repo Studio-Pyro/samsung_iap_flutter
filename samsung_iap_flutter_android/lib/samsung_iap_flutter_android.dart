@@ -7,9 +7,8 @@ import 'package:samsung_iap_flutter_platform_interface/samsung_iap_flutter_platf
 /// {@endtemplate}
 class SamsungIapFlutterAndroid extends SamsungIapFlutterPlatform {
   /// {@macro samsung_iap_flutter_android}
-  new({
-    @visibleForTesting SamsungIapFlutterApi? api,
-  }) : api = api ?? SamsungIapFlutterApi();
+  new({@visibleForTesting SamsungIapFlutterApi? api})
+    : api = api ?? SamsungIapFlutterApi();
 
   /// The API used to interact with the native platform.
   final SamsungIapFlutterApi api;
@@ -17,8 +16,7 @@ class SamsungIapFlutterAndroid extends SamsungIapFlutterPlatform {
   /// Registers this class as the default instance of
   /// [SamsungIapFlutterPlatform].
   static void registerWith() {
-    SamsungIapFlutterPlatform.instance =
-        SamsungIapFlutterAndroid();
+    SamsungIapFlutterPlatform.instance = SamsungIapFlutterAndroid();
   }
 
   @override

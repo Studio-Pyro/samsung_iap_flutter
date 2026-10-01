@@ -12,14 +12,11 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group(SamsungIapFlutterPlatform, () {
-    late SamsungIapFlutterPlatform
-    samsungIapFlutterPlatform;
+    late SamsungIapFlutterPlatform samsungIapFlutterPlatform;
 
     setUp(() {
-      samsungIapFlutterPlatform =
-          MockSamsungIapFlutterPlatform();
-      SamsungIapFlutterPlatform.instance =
-          samsungIapFlutterPlatform;
+      samsungIapFlutterPlatform = MockSamsungIapFlutterPlatform();
+      SamsungIapFlutterPlatform.instance = samsungIapFlutterPlatform;
     });
 
     group('getPlatformName', () {
@@ -27,9 +24,8 @@ void main() {
         'returns correct name when platform implementation exists',
         () async {
           const platformName = '__test_platform__';
-          when(
-            () => samsungIapFlutterPlatform.getPlatformName(),
-          ).thenAnswer((_) async => platformName);
+          when(() => samsungIapFlutterPlatform.getPlatformName())
+              .thenAnswer((_) async => platformName);
 
           final actualPlatformName = await getPlatformName();
           expect(actualPlatformName, equals(platformName));
@@ -39,9 +35,8 @@ void main() {
       test(
         'throws exception when platform implementation is missing',
         () async {
-          when(
-            () => samsungIapFlutterPlatform.getPlatformName(),
-          ).thenAnswer((_) async => null);
+          when(() => samsungIapFlutterPlatform.getPlatformName())
+              .thenAnswer((_) async => null);
 
           expect(getPlatformName, throwsException);
         },
