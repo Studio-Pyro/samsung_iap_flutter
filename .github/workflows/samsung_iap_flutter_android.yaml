@@ -44,8 +44,15 @@ jobs:
         with:
           flutter-version: 3.47.5
 
-      # The Gradle wrapper and local.properties are generated, not committed.
-      - name: Generate Gradle project
+      - name: Check generated Pigeon code
+        working-directory: samsung_iap_flutter_android
+        run: |
+          flutter pub get
+          dart run pigeon --input pigeons/messages.dart
+          dart format lib/src/messages.g.dart
+          git diff --exit-code
+
+      - name: Generate gradlew and local.properties
         run: flutter build apk --debug --config-only
 
       - name: Kotlin unit tests
