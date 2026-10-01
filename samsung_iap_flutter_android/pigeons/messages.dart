@@ -1,5 +1,3 @@
-// SamsungIapFlutterApi must be abstract.
-
 import 'package:pigeon/pigeon.dart';
 
 @ConfigurePigeon(
