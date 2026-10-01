@@ -827,7 +827,7 @@ Each slice ships on its own: all three packages build, tests pass, and the examp
 - **Scope:**
   - README per package, covering: setup; prerequisites (§3.5); operation-mode warning; `getOwnedProducts` on every launch; consume vs acknowledge decision; server verification contract (§5.5); Galaxy flavor with a distinct `applicationId`.
   - Example app polish.
-  - pana score.
+  - pana score. S0 removed the template's pana CI jobs, because `path:` dependencies cap the score. Add them back here, after the swap to version constraints.
   - `CHANGELOG`s.
   - Publish in dependency order: platform_interface → android → app-facing. The repo has `PUBLISHING.md`; follow it.
   - Swap `path:` dependencies for version constraints.

@@ -26,9 +26,6 @@ jobs:
       working_directory: samsung_iap_flutter_android
       coverage_excludes: "**/*.g.dart"
 
-  pana:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/pana.yml@v1
-
   kotlin:
     runs-on: ubuntu-latest
 

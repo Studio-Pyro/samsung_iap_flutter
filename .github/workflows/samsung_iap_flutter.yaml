@@ -32,10 +32,6 @@ jobs:
       flutter_version: 3.47.5
       working_directory: samsung_iap_flutter
 
-  pana:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/pana.yml@v1
-
-
   android:
     runs-on: macos-latest
 
