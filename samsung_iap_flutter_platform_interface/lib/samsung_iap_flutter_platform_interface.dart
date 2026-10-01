@@ -1,5 +1,4 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:samsung_iap_flutter_platform_interface/src/method_channel_samsung_iap_flutter.dart';
 
 /// {@template samsung_iap_flutter_platform}
 /// The interface that implementations of
@@ -19,11 +18,12 @@ abstract class SamsungIapFlutterPlatform extends PlatformInterface {
 
   static final Object _token = Object();
 
-  static SamsungIapFlutterPlatform _instance = MethodChannelSamsungIapFlutter();
+  static SamsungIapFlutterPlatform _instance = _PlaceholderImplementation();
 
   /// The default instance of [SamsungIapFlutterPlatform] to use.
   ///
-  /// Defaults to [MethodChannelSamsungIapFlutter].
+  /// Until a platform implementation registers itself, every method throws
+  /// [UnimplementedError].
   static SamsungIapFlutterPlatform get instance => _instance;
 
   /// Platform-specific plugins should set this with their own platform-specific
@@ -35,5 +35,9 @@ abstract class SamsungIapFlutterPlatform extends PlatformInterface {
   }
 
   /// Return the current platform name.
-  Future<String?> getPlatformName();
+  Future<String?> getPlatformName() {
+    throw UnimplementedError('getPlatformName() has not been implemented.');
+  }
 }
+
+class _PlaceholderImplementation extends SamsungIapFlutterPlatform;
