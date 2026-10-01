@@ -57,3 +57,46 @@ enum PeriodUnit {
   /// A unit this version of the plugin does not know.
   unknown,
 }
+
+/// Which owned products to fetch.
+enum OwnedProductFilter {
+  /// One-time items only.
+  item,
+
+  /// Subscriptions only.
+  subscription,
+
+  /// Items and subscriptions.
+  all,
+}
+
+/// Whether an owned product has been acknowledged.
+enum AcknowledgedStatus {
+  /// The installed Galaxy Store is too old to report the status.
+  unsupported,
+
+  /// Not acknowledged yet.
+  notAcknowledged,
+
+  /// Already acknowledged.
+  acknowledged,
+
+  /// A status this version of the plugin does not know.
+  unknown,
+}
+
+/// The kind of a scheduled subscription price change.
+enum PriceChangeMode {
+  /// The price goes up, and the user must agree to the new price to keep the
+  /// subscription.
+  increaseConsentRequired,
+
+  /// The price goes up without the user having to agree.
+  increaseNoConsentRequired,
+
+  /// The price goes down.
+  decrease,
+
+  /// A mode this version of the plugin does not know.
+  unknown,
+}

@@ -1,9 +1,11 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:samsung_iap_flutter_platform_interface/src/enums.dart';
+import 'package:samsung_iap_flutter_platform_interface/src/owned_product.dart';
 import 'package:samsung_iap_flutter_platform_interface/src/product.dart';
 
 export 'src/enums.dart';
 export 'src/exception.dart';
+export 'src/owned_product.dart';
 export 'src/product.dart';
 
 /// {@template samsung_iap_flutter_platform}
@@ -60,6 +62,11 @@ abstract class SamsungIapFlutterPlatform extends PlatformInterface {
   /// empty.
   Future<List<SamsungProduct>> getProducts(List<String> productIds) {
     throw UnimplementedError('getProducts() has not been implemented.');
+  }
+
+  /// Fetches the products the user owns that match [filter].
+  Future<List<OwnedProduct>> getOwnedProducts(OwnedProductFilter filter) {
+    throw UnimplementedError('getOwnedProducts() has not been implemented.');
   }
 }
 
