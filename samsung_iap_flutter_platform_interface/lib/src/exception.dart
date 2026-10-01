@@ -80,7 +80,9 @@ final class SamsungIapException implements Exception {
   /// A human-readable description for logs. Not for end users.
   final String message;
 
-  /// Samsung's raw error details string.
+  /// Samsung's raw error details string. For
+  /// [SamsungIapErrorKind.storeUnavailable], the store status, for example
+  /// `notInstalled`. For other plugin errors, diagnostic text for logs.
   final String? details;
 
   /// Whether Samsung already showed its own error dialog, so the app should

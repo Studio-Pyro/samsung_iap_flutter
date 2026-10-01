@@ -33,7 +33,6 @@ class SamsungIapFlutterAndroid extends SamsungIapFlutterPlatform {
     () => _api.initialize(operationModeToPlatform(mode), showErrorDialog),
   );
 
-  // A package check that never touches the SDK, so it skips the queue.
   @override
   Future<GalaxyStoreStatus> getGalaxyStoreStatus() => _mapErrors(
     () async => storeStatusFromPlatform(await _api.getStoreStatus()),

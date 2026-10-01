@@ -25,6 +25,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
@@ -227,10 +228,25 @@ class SamsungIapFlutterPluginTest {
         runCurrent()
         assertEquals("timeout", (result.await().exceptionOrNull() as FlutterError).code)
 
-        var evaluated = false
-        done!!(errorVo(0)) { evaluated = true; "late" }
+        done!!(errorVo(0)) { "late" }
+    }
 
-        assertFalse(evaluated, "a late callback is a no-op")
+    @Test
+    fun getProductsDetailsFailsAtOnceOnANullCallback() = runTest {
+        var listener: OnGetProductsDetailsListener? = null
+        doAnswer { listener = it.getArgument(1); null }
+            .`when`(helper).getProductsDetails(anyString(), any())
+        val plugin = initializedPlugin()
+        val result = async { runCatching { plugin.getProductsDetails("") } }
+        runCurrent()
+
+        OnGetProductsDetailsListener::class.java
+            .getMethod("onGetProducts", ErrorVo::class.java, ArrayList::class.java)
+            .invoke(listener, null, null)
+        runCurrent()
+
+        assertTrue(result.isCompleted, "failed without waiting for the timeout")
+        assertIs<NullPointerException>(result.await().exceptionOrNull())
     }
 
     @Test

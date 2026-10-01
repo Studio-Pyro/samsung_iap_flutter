@@ -49,8 +49,8 @@ class SamsungIapFlutterPlugin(
         val helper = requireHelper()
         requireStore()
         return awaitSdk("getProductsDetails", INQUIRY_TIMEOUT) { done ->
-            helper.getProductsDetails(productIds) { error, products ->
-                done(error) { products.map { it.toPlatform() } }
+            helper.getProductsDetails(productIds) { error: ErrorVo?, products: ArrayList<ProductVo>? ->
+                done(error) { products!!.map { it.toPlatform() } }
             }
             true
         }
@@ -69,7 +69,7 @@ class SamsungIapFlutterPlugin(
 }
 
 /** Delivers one SDK callback: its error, and the value to compute on success. */
-internal typealias Done<T> = (error: ErrorVo, value: () -> T) -> Unit
+internal typealias Done<T> = (error: ErrorVo?, value: () -> T) -> Unit
 
 /**
  * Bridges one SDK call to one suspend result.
@@ -87,16 +87,16 @@ internal suspend fun <T> awaitSdk(
     val await = suspend {
         suspendCancellableCoroutine<T> { continuation ->
             val finished = AtomicBoolean(false)
-            continuation.invokeOnCancellation { finished.set(true) }
             fun finish(result: () -> Result<T>) {
                 if (finished.compareAndSet(false, true)) continuation.resumeWith(result())
             }
             val sent = start { error, value ->
                 finish {
-                    if (error.errorCode == HelperDefine.IAP_ERROR_NONE) {
-                        runCatching(value)
-                    } else {
-                        Result.failure(error.toFlutterError())
+                    runCatching {
+                        if (error != null && error.errorCode != HelperDefine.IAP_ERROR_NONE) {
+                            throw error.toFlutterError()
+                        }
+                        value()
                     }
                 }
             }
