@@ -62,8 +62,8 @@ class SamsungIapFlutterPlugin(
         val helper = requireHelper()
         requireStore()
         return awaitSdk("getOwnedList", INQUIRY_TIMEOUT) { done ->
-            helper.getOwnedList(filter.toSdk()) { error, owned ->
-                done(error) { owned.map { it.toPlatform() } }
+            helper.getOwnedList(filter.toSdk()) { error: ErrorVo?, owned: ArrayList<OwnedProductVo>? ->
+                done(error) { owned!!.map { it.toPlatform() } }
             }
         }
     }

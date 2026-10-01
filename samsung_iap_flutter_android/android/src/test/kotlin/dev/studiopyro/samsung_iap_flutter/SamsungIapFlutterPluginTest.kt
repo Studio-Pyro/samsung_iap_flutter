@@ -434,6 +434,24 @@ class SamsungIapFlutterPluginTest {
     }
 
     @Test
+    fun getOwnedListFailsAtOnceOnASuccessWithANullList() = runTest {
+        var listener: OnGetOwnedListListener? = null
+        doAnswer { listener = it.getArgument(1); true }
+            .`when`(helper).getOwnedList(anyString(), any())
+        val plugin = initializedPlugin()
+        val result = async { runCatching { plugin.getOwnedList(PlatformOwnedProductFilter.ALL) } }
+        runCurrent()
+
+        OnGetOwnedListListener::class.java
+            .getMethod("onGetOwnedProducts", ErrorVo::class.java, ArrayList::class.java)
+            .invoke(listener, errorVo(0), null)
+        runCurrent()
+
+        assertTrue(result.isCompleted, "failed without waiting for the timeout")
+        assertIs<NullPointerException>(result.await().exceptionOrNull())
+    }
+
+    @Test
     fun awaitSdkWithoutATimeoutWaitsIndefinitely() = runTest {
         var done: Done<String>? = null
         val result = async { awaitSdk("startPayment") { done = it; true } }
