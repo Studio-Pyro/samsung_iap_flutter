@@ -38,12 +38,21 @@ example uses `dev.studiopyro.samsung_iap_flutter.example`.
 samsungIap.applicationId=<package registered in Seller Portal>
 ```
 
-Then run all integration tests on the Samsung device:
+Then run the device tests on the Samsung device. They use TEST mode, so sign in to Galaxy Store as a
+license tester. Pass the product IDs to fetch as a comma-separated list. Without the define, the
+tests fetch every product of the app.
 
 ```sh
 cd samsung_iap_flutter/example
-flutter test integration_test
+flutter test integration_test/device_test.dart --dart-define=SAMSUNG_IAP_PRODUCT_IDS=<id1>,<id2>
 ```
+
+Some checks cannot be automated. Do them by hand in the example app, which starts in TEST mode:
+
+1. Disable Galaxy Store in the system settings.
+2. Tap **Initialize**. The app shows `Galaxy Store: disabled`.
+3. Tap **Get products**. The app shows a `storeUnavailable` error at once, without a Samsung dialog.
+4. Enable Galaxy Store again.
 
 ## Pigeon bindings 🐦
 

@@ -1,0 +1,59 @@
+/// How Samsung IAP processes requests.
+///
+/// Use [test] or [testFailure] only while the app is in the Registering or
+/// Updating state in Seller Portal. A build that ships in [test] mode gives
+/// license testers free products and shows everyone else an error.
+enum OperationMode {
+  /// Real transactions with real results. The default.
+  production,
+
+  /// Payments always succeed and nothing is charged. Only license testers can
+  /// buy.
+  test,
+
+  /// Every request fails, so error handling can be tested.
+  testFailure,
+}
+
+/// Whether Galaxy Store can serve in-app purchases on this device.
+enum GalaxyStoreStatus {
+  /// Galaxy Store is installed, enabled and genuine.
+  available,
+
+  /// Galaxy Store is missing, or installed at a version the SDK cannot use.
+  notInstalled,
+
+  /// Galaxy Store is installed but disabled.
+  disabled,
+
+  /// The installed Galaxy Store does not carry Samsung's signature.
+  invalid,
+}
+
+/// The kind of product registered in Seller Portal.
+enum SamsungProductType {
+  /// A one-time item. Consume it to allow a repurchase, or acknowledge it as a
+  /// permanent unlock.
+  item,
+
+  /// An auto-recurring subscription.
+  subscription,
+
+  /// A type this version of the plugin does not know.
+  unknown,
+}
+
+/// The unit of a subscription period.
+enum PeriodUnit {
+  /// One week.
+  week,
+
+  /// One calendar month.
+  month,
+
+  /// One calendar year.
+  year,
+
+  /// A unit this version of the plugin does not know.
+  unknown,
+}

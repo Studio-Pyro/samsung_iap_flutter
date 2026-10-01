@@ -4,43 +4,117 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:samsung_iap_flutter/samsung_iap_flutter.dart';
 import 'package:samsung_iap_flutter_platform_interface/samsung_iap_flutter_platform_interface.dart';
 
-class MockSamsungIapFlutterPlatform extends Mock
+class _MockPlatform extends Mock
     with MockPlatformInterfaceMixin
     implements SamsungIapFlutterPlatform;
 
+const _product = SamsungProduct(
+  id: 'coins_100',
+  name: '100 coins',
+  description: '',
+  type: SamsungProductType.item,
+  price: 0.99,
+  formattedPrice: '£0.99',
+  currencyCode: 'GBP',
+  currencySymbol: '£',
+  subscriptionPeriod: null,
+  freeTrialDays: null,
+  introductoryOffer: null,
+  availableFrom: null,
+  availableUntil: null,
+  imageUrl: null,
+  downloadUrl: null,
+  rawJson: '{}',
+);
+
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  late _MockPlatform platform;
+  const iap = SamsungIap();
 
-  group(SamsungIapFlutterPlatform, () {
-    late SamsungIapFlutterPlatform samsungIapFlutterPlatform;
+  setUpAll(() => registerFallbackValue(OperationMode.production));
 
+  setUp(() {
+    platform = _MockPlatform();
+    SamsungIapFlutterPlatform.instance = platform;
+  });
+
+  group('initialize', () {
     setUp(() {
-      samsungIapFlutterPlatform = MockSamsungIapFlutterPlatform();
-      SamsungIapFlutterPlatform.instance = samsungIapFlutterPlatform;
+      when(
+        () => platform.initialize(
+          mode: any(named: 'mode'),
+          showErrorDialog: any(named: 'showErrorDialog'),
+        ),
+      ).thenAnswer((_) async {});
     });
 
-    group('getPlatformName', () {
-      test(
-        'returns correct name when platform implementation exists',
-        () async {
-          const platformName = '__test_platform__';
-          when(() => samsungIapFlutterPlatform.getPlatformName())
-              .thenAnswer((_) async => platformName);
+    test('defaults to production with Samsung dialogs', () async {
+      await iap.initialize();
 
-          final actualPlatformName = await getPlatformName();
-          expect(actualPlatformName, equals(platformName));
-        },
-      );
+      verify(
+        () => platform.initialize(
+          mode: OperationMode.production,
+          showErrorDialog: true,
+        ),
+      ).called(1);
+    });
 
-      test(
-        'throws exception when platform implementation is missing',
-        () async {
-          when(() => samsungIapFlutterPlatform.getPlatformName())
-              .thenAnswer((_) async => null);
+    test('passes an explicit mode and dialog flag', () async {
+      await iap.initialize(mode: OperationMode.test, showErrorDialog: false);
 
-          expect(getPlatformName, throwsException);
-        },
-      );
+      verify(
+        () => platform.initialize(
+          mode: OperationMode.test,
+          showErrorDialog: false,
+        ),
+      ).called(1);
+    });
+  });
+
+  test('getGalaxyStoreStatus returns the platform status', () async {
+    when(platform.getGalaxyStoreStatus)
+        .thenAnswer((_) async => GalaxyStoreStatus.disabled);
+
+    expect(await iap.getGalaxyStoreStatus(), GalaxyStoreStatus.disabled);
+  });
+
+  group('getProducts', () {
+    setUp(() {
+      when(() => platform.getProducts(any()))
+          .thenAnswer((_) async => [_product]);
+    });
+
+    test('asks for every product by default', () async {
+      expect(await iap.getProducts(), [_product]);
+
+      verify(() => platform.getProducts([])).called(1);
+    });
+
+    test('passes the requested IDs', () async {
+      await iap.getProducts(['coins_100', 'monthly']);
+
+      verify(() => platform.getProducts(['coins_100', 'monthly'])).called(1);
+    });
+
+    test('rejects an empty or comma-joined ID before the platform', () async {
+      for (final ids in [
+        [''],
+        ['coins_100', '  '],
+        ['coins_100,monthly'],
+      ]) {
+        await expectLater(
+          iap.getProducts(ids),
+          throwsA(
+            isA<SamsungIapException>().having(
+              (e) => e.kind,
+              'kind',
+              SamsungIapErrorKind.invalidArgument,
+            ),
+          ),
+          reason: '$ids',
+        );
+      }
+      verifyNever(() => platform.getProducts(any()));
     });
   });
 }

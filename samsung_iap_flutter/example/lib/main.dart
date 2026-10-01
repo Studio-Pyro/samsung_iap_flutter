@@ -1,6 +1,15 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:samsung_iap_flutter/samsung_iap_flutter.dart';
 
+/// Product IDs to fetch, comma-separated. Empty fetches every product.
+const productIdsDefine = String.fromEnvironment('SAMSUNG_IAP_PRODUCT_IDS');
+
+/// [productIdsDefine] as a list.
+List<String> get productIds => [
+  for (final id in productIdsDefine.split(','))
+    if (id.trim().isNotEmpty) id.trim(),
+];
+
 void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
@@ -20,45 +29,86 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String? _platformName;
+  static const _iap = SamsungIap();
+
+  OperationMode _mode = OperationMode.test;
+  bool _initialized = false;
+  GalaxyStoreStatus? _status;
+  List<SamsungProduct>? _products;
+  String? _error;
+
+  Future<void> _run(Future<void> Function() action) async {
+    setState(() => _error = null);
+    try {
+      await action();
+    } on SamsungIapException catch (e) {
+      setState(() => _error = '${e.kind.name}: ${e.message}');
+    }
+  }
+
+  Future<void> _initialize() => _run(() async {
+    await _iap.initialize(mode: _mode);
+    final status = await _iap.getGalaxyStoreStatus();
+    setState(() {
+      _initialized = true;
+      _status = status;
+    });
+  });
+
+  Future<void> _getProducts() => _run(() async {
+    final products = await _iap.getProducts(productIds);
+    setState(() => _products = products);
+  });
 
   @override
   Widget build(BuildContext context) {
+    final products = _products;
     return Scaffold(
-      appBar: AppBar(title: const Text('SamsungIapFlutter Example')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (_platformName == null)
-              const SizedBox.shrink()
-            else
-              Text(
-                'Platform Name: $_platformName',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () async {
-                if (!context.mounted) return;
-                try {
-                  final result = await getPlatformName();
-                  setState(() => _platformName = result);
-                } on Exception catch (error) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: Theme.of(context).primaryColor,
-                      content: Text('$error'),
-                    ),
-                  );
-                }
-              },
-              child: const Text('Get Platform Name'),
+      appBar: AppBar(title: const Text('Samsung IAP Example')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          SegmentedButton<OperationMode>(
+            segments: [
+              for (final mode in OperationMode.values)
+                ButtonSegment(value: mode, label: Text(mode.name)),
+            ],
+            selected: {_mode},
+            onSelectionChanged: (selected) =>
+                setState(() => _mode = selected.single),
+          ),
+          const SizedBox(height: 8),
+          FilledButton(onPressed: _initialize, child: const Text('Initialize')),
+          if (_status case final status?) Text('Galaxy Store: ${status.name}'),
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: _initialized ? _getProducts : null,
+            child: const Text('Get products'),
+          ),
+          if (_error case final error?)
+            Text(
+              error,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
-          ],
-        ),
+          if (products != null) Text('${products.length} products'),
+          for (final product in products ?? const <SamsungProduct>[])
+            ListTile(
+              title: Text(product.name),
+              subtitle: Text(_describe(product)),
+              trailing: Text(product.formattedPrice),
+            ),
+        ],
       ),
     );
   }
+
+  static String _describe(SamsungProduct product) => [
+    product.id,
+    product.type.name,
+    if (product.subscriptionPeriod case final period?)
+      'every ${period.count} ${period.unit.name}',
+    if (product.freeTrialDays case final days?) '$days-day trial',
+    if (product.introductoryOffer case final offer?)
+      '${offer.formattedPrice} for ${offer.cycles} periods',
+  ].join(' · ');
 }
