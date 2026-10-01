@@ -5,7 +5,9 @@ import com.samsung.android.sdk.iap.lib.constants.HelperDefine
 import com.samsung.android.sdk.iap.lib.helper.IapHelper
 import com.samsung.android.sdk.iap.lib.util.HelperUtil
 import com.samsung.android.sdk.iap.lib.vo.ErrorVo
+import com.samsung.android.sdk.iap.lib.vo.OwnedProductVo
 import com.samsung.android.sdk.iap.lib.vo.ProductVo
+import com.samsung.android.sdk.iap.lib.vo.SubscriptionPriceChangeVo
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration
@@ -53,6 +55,16 @@ class SamsungIapFlutterPlugin(
                 done(error) { products!!.map { it.toPlatform() } }
             }
             true
+        }
+    }
+
+    override suspend fun getOwnedList(filter: PlatformOwnedProductFilter): List<PlatformOwnedProduct> {
+        val helper = requireHelper()
+        requireStore()
+        return awaitSdk("getOwnedList", INQUIRY_TIMEOUT) { done ->
+            helper.getOwnedList(filter.toSdk()) { error, owned ->
+                done(error) { owned.map { it.toPlatform() } }
+            }
         }
     }
 
@@ -137,6 +149,12 @@ private fun PlatformOperationMode.toSdk(): HelperDefine.OperationMode = when (th
     PlatformOperationMode.TEST_FAILURE -> HelperDefine.OperationMode.OPERATION_MODE_TEST_FAILURE
 }
 
+private fun PlatformOwnedProductFilter.toSdk(): String = when (this) {
+    PlatformOwnedProductFilter.ITEM -> HelperDefine.PRODUCT_TYPE_ITEM
+    PlatformOwnedProductFilter.SUBSCRIPTION -> HelperDefine.PRODUCT_TYPE_SUBSCRIPTION
+    PlatformOwnedProductFilter.ALL -> HelperDefine.PRODUCT_TYPE_ALL
+}
+
 private fun ErrorVo.toFlutterError() = FlutterError(
     "sdk",
     errorString,
@@ -170,4 +188,34 @@ private fun ProductVo.toPlatform() = PlatformProduct(
     itemDownloadUrl = itemDownloadUrl.orEmpty(),
     freeTrialPeriod = freeTrialPeriod.orEmpty(),
     json = jsonString.orEmpty(),
+)
+
+private fun OwnedProductVo.toPlatform() = PlatformOwnedProduct(
+    itemId = itemId.orEmpty(),
+    itemName = itemName.orEmpty(),
+    itemPrice = itemPrice,
+    itemPriceString = itemPriceString.orEmpty(),
+    currencyCode = currencyCode.orEmpty(),
+    type = type.orEmpty(),
+    paymentId = paymentId.orEmpty(),
+    purchaseId = purchaseId.orEmpty(),
+    purchaseDate = purchaseDate.orEmpty(),
+    subscriptionEndDate = subscriptionEndDate.orEmpty(),
+    subscriptionPriceChange = subscriptionPriceChange?.toPlatform(),
+    acknowledgedStatus = acknowledgedStatus?.name.orEmpty(),
+    obfuscatedAccountId = obfuscatedAccountId.orEmpty(),
+    obfuscatedProfileId = obfuscatedProfileId.orEmpty(),
+    json = jsonString.orEmpty(),
+)
+
+private fun SubscriptionPriceChangeVo.toPlatform() = PlatformSubscriptionPriceChange(
+    subscriptionDurationUnit = subscriptionDurationUnit.orEmpty(),
+    subscriptionDurationMultiplier = subscriptionDurationMultiplier.orEmpty(),
+    startDate = startDate.orEmpty(),
+    originalLocalPrice = originalLocalPrice,
+    originalLocalPriceString = originalLocalPriceString.orEmpty(),
+    newLocalPrice = newLocalPrice,
+    newLocalPriceString = newLocalPriceString.orEmpty(),
+    isConsented = isConsented(),
+    priceChangeMode = priceChangeMode?.name.orEmpty(),
 )

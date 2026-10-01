@@ -1,11 +1,16 @@
 package dev.studiopyro.samsung_iap_flutter
 
 import android.content.Context
+import com.samsung.android.sdk.iap.lib.constants.HelperDefine.AcknowledgedStatus
 import com.samsung.android.sdk.iap.lib.constants.HelperDefine.OperationMode
+import com.samsung.android.sdk.iap.lib.constants.HelperDefine.PriceChangeMode
 import com.samsung.android.sdk.iap.lib.helper.IapHelper
+import com.samsung.android.sdk.iap.lib.listener.OnGetOwnedListListener
 import com.samsung.android.sdk.iap.lib.listener.OnGetProductsDetailsListener
 import com.samsung.android.sdk.iap.lib.vo.ErrorVo
+import com.samsung.android.sdk.iap.lib.vo.OwnedProductVo
 import com.samsung.android.sdk.iap.lib.vo.ProductVo
+import com.samsung.android.sdk.iap.lib.vo.SubscriptionPriceChangeVo
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.BinaryMessenger
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -216,6 +221,185 @@ class SamsungIapFlutterPluginTest {
         val error = result.await().exceptionOrNull() as FlutterError
         assertEquals("timeout", error.code)
         assertEquals("getProductsDetails", error.details)
+    }
+
+    private fun answerOwned(sent: Boolean = true, vararg owned: OwnedProductVo) {
+        doAnswer { invocation ->
+            invocation.getArgument<OnGetOwnedListListener>(1)
+                .onGetOwnedProducts(errorVo(0), arrayListOf(*owned))
+            sent
+        }.`when`(helper).getOwnedList(anyString(), any())
+    }
+
+    private fun ownedVo(priceChange: SubscriptionPriceChangeVo? = null): OwnedProductVo =
+        mock(OwnedProductVo::class.java).also {
+            `when`(it.itemId).thenReturn("monthly")
+            `when`(it.itemPrice).thenReturn(7.99)
+            `when`(it.type).thenReturn("subscription")
+            `when`(it.paymentId).thenReturn("TPMTID20260101")
+            `when`(it.purchaseId).thenReturn("a1b2c3")
+            `when`(it.purchaseDate).thenReturn("2026-01-01 09:00:00")
+            `when`(it.subscriptionEndDate).thenReturn("2026-02-01 09:00:00")
+            `when`(it.subscriptionPriceChange).thenReturn(priceChange)
+            `when`(it.acknowledgedStatus).thenReturn(AcknowledgedStatus.NOT_ACKNOWLEDGED)
+            `when`(it.obfuscatedAccountId).thenReturn("account")
+            `when`(it.jsonString).thenReturn("""{"mItemId":"monthly"}""")
+        }
+
+    @Test
+    fun getOwnedListReturnsMappedOwnedProducts() = runTest {
+        val priceChange = mock(SubscriptionPriceChangeVo::class.java).also {
+            `when`(it.subscriptionDurationUnit).thenReturn("MONTH")
+            `when`(it.subscriptionDurationMultiplier).thenReturn("1")
+            `when`(it.startDate).thenReturn("2026-06-01 00:00:00")
+            `when`(it.originalLocalPrice).thenReturn(7.99)
+            `when`(it.originalLocalPriceString).thenReturn("£7.99")
+            `when`(it.newLocalPrice).thenReturn(8.99)
+            `when`(it.newLocalPriceString).thenReturn("£8.99")
+            `when`(it.isConsented()).thenReturn(true)
+            `when`(it.priceChangeMode).thenReturn(PriceChangeMode.PRICE_INCREASE_USER_AGREEMENT_REQUIRED)
+        }
+        answerOwned(owned = arrayOf(ownedVo(priceChange)))
+
+        val owned = initializedPlugin().getOwnedList(PlatformOwnedProductFilter.ALL).single()
+
+        assertEquals("monthly", owned.itemId)
+        assertEquals(7.99, owned.itemPrice)
+        assertEquals("subscription", owned.type)
+        assertEquals("TPMTID20260101", owned.paymentId)
+        assertEquals("a1b2c3", owned.purchaseId)
+        assertEquals("2026-01-01 09:00:00", owned.purchaseDate)
+        assertEquals("2026-02-01 09:00:00", owned.subscriptionEndDate)
+        assertEquals("NOT_ACKNOWLEDGED", owned.acknowledgedStatus)
+        assertEquals("account", owned.obfuscatedAccountId)
+        assertEquals("""{"mItemId":"monthly"}""", owned.json)
+        assertEquals("", owned.obfuscatedProfileId, "null getters arrive as empty strings")
+        assertEquals("", owned.itemName, "null getters arrive as empty strings")
+        assertEquals(
+            PlatformSubscriptionPriceChange(
+                subscriptionDurationUnit = "MONTH",
+                subscriptionDurationMultiplier = "1",
+                startDate = "2026-06-01 00:00:00",
+                originalLocalPrice = 7.99,
+                originalLocalPriceString = "£7.99",
+                newLocalPrice = 8.99,
+                newLocalPriceString = "£8.99",
+                isConsented = true,
+                priceChangeMode = "PRICE_INCREASE_USER_AGREEMENT_REQUIRED",
+            ),
+            owned.subscriptionPriceChange,
+        )
+    }
+
+    @Test
+    fun getOwnedListMapsAnAbsentPriceChangeAndNullEnums() = runTest {
+        val unparsed = mock(SubscriptionPriceChangeVo::class.java).also {
+            `when`(it.isConsented()).thenReturn(null)
+        }
+        answerOwned(owned = arrayOf(ownedVo(), ownedVo(unparsed)))
+
+        val (plain, broken) = initializedPlugin().getOwnedList(PlatformOwnedProductFilter.ALL)
+
+        assertEquals(null, plain.subscriptionPriceChange)
+        val change = broken.subscriptionPriceChange!!
+        assertEquals("", change.priceChangeMode)
+        assertEquals(null, change.isConsented)
+        assertEquals("", change.startDate)
+    }
+
+    @Test
+    fun getOwnedListMapsANullAcknowledgedStatusToEmpty() = runTest {
+        val vo = ownedVo().also { `when`(it.acknowledgedStatus).thenReturn(null) }
+        answerOwned(owned = arrayOf(vo))
+
+        val owned = initializedPlugin().getOwnedList(PlatformOwnedProductFilter.ALL).single()
+
+        assertEquals("", owned.acknowledgedStatus)
+    }
+
+    @Test
+    fun getOwnedListSendsEachFilterAsTheSdkProductType() = runTest {
+        val expected = mapOf(
+            PlatformOwnedProductFilter.ITEM to "item",
+            PlatformOwnedProductFilter.SUBSCRIPTION to "subscription",
+            PlatformOwnedProductFilter.ALL to "all",
+        )
+        assertEquals(PlatformOwnedProductFilter.entries.toSet(), expected.keys)
+        answerOwned()
+        val plugin = initializedPlugin()
+
+        expected.forEach { (filter, productType) ->
+            plugin.getOwnedList(filter)
+            verify(helper).getOwnedList(eq(productType), any())
+        }
+    }
+
+    @Test
+    fun getOwnedListThrowsTheSdkError() = runTest {
+        doAnswer { invocation ->
+            invocation.getArgument<OnGetOwnedListListener>(1)
+                .onGetOwnedProducts(errorVo(-1008), arrayListOf())
+            true
+        }.`when`(helper).getOwnedList(anyString(), any())
+
+        val error = assertFailsWith<FlutterError> {
+            initializedPlugin().getOwnedList(PlatformOwnedProductFilter.ALL)
+        }
+
+        assertEquals("sdk", error.code)
+        assertEquals(-1008, (error.details as Map<*, *>)["errorCode"])
+    }
+
+    @Test
+    fun getOwnedListMapsAFalseReturnToNotSent() = runTest {
+        doAnswer { false }.`when`(helper).getOwnedList(anyString(), any())
+
+        val error = assertFailsWith<FlutterError> {
+            initializedPlugin().getOwnedList(PlatformOwnedProductFilter.ALL)
+        }
+
+        assertEquals("not_sent", error.code)
+        assertEquals("getOwnedList", error.details)
+    }
+
+    @Test
+    fun getOwnedListFailsBeforeTheSdkWhenTheStoreIsUnusable() = runTest {
+        store = PlatformStoreStatus.INVALID
+
+        val error = assertFailsWith<FlutterError> {
+            initializedPlugin().getOwnedList(PlatformOwnedProductFilter.ALL)
+        }
+
+        assertEquals("store_unavailable", error.code)
+        assertEquals("invalid", error.details)
+        verify(helper, never()).getOwnedList(anyString(), any())
+    }
+
+    @Test
+    fun getOwnedListBeforeInitializeFails() = runTest {
+        val error = assertFailsWith<FlutterError> {
+            attachedPlugin().getOwnedList(PlatformOwnedProductFilter.ALL)
+        }
+
+        assertEquals("not_initialized", error.code)
+        verify(helper, never()).getOwnedList(anyString(), any())
+    }
+
+    @Test
+    fun getOwnedListTimesOutAfter30Seconds() = runTest {
+        doAnswer { true }.`when`(helper).getOwnedList(anyString(), any())
+        val plugin = initializedPlugin()
+
+        val result = async { runCatching { plugin.getOwnedList(PlatformOwnedProductFilter.ALL) } }
+        advanceTimeBy(30.seconds - 1.milliseconds)
+        runCurrent()
+        assertFalse(result.isCompleted, "still waiting just before 30s")
+        advanceTimeBy(1.milliseconds)
+        runCurrent()
+
+        val error = result.await().exceptionOrNull() as FlutterError
+        assertEquals("timeout", error.code)
+        assertEquals("getOwnedList", error.details)
     }
 
     @Test

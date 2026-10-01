@@ -102,6 +102,8 @@ enum PlatformOperationMode { production, test, testFailure }
 
 enum PlatformStoreStatus { available, notInstalled, disabled, invalid }
 
+enum PlatformOwnedProductFilter { item, subscription, all }
+
 /// `ProductVo` field for field. Kotlin sends a missing string as `""` and
 /// Dart does all interpretation.
 class PlatformProduct {
@@ -285,6 +287,243 @@ class PlatformProduct {
   }
 }
 
+/// The `SubscriptionPriceChangeVo` fields the public model uses. The prices
+/// are NaN when Samsung sends none.
+class PlatformSubscriptionPriceChange {
+  PlatformSubscriptionPriceChange({
+    required this.subscriptionDurationUnit,
+    required this.subscriptionDurationMultiplier,
+    required this.startDate,
+    required this.originalLocalPrice,
+    required this.originalLocalPriceString,
+    required this.newLocalPrice,
+    required this.newLocalPriceString,
+    this.isConsented,
+    required this.priceChangeMode,
+  });
+
+  String subscriptionDurationUnit;
+
+  String subscriptionDurationMultiplier;
+
+  String startDate;
+
+  double originalLocalPrice;
+
+  String originalLocalPriceString;
+
+  double newLocalPrice;
+
+  String newLocalPriceString;
+
+  bool? isConsented;
+
+  /// The SDK enum constant's name, or `""`.
+  String priceChangeMode;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      subscriptionDurationUnit,
+      subscriptionDurationMultiplier,
+      startDate,
+      originalLocalPrice,
+      originalLocalPriceString,
+      newLocalPrice,
+      newLocalPriceString,
+      isConsented,
+      priceChangeMode,
+    ];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static PlatformSubscriptionPriceChange decode(Object result) {
+    result as List<Object?>;
+    return PlatformSubscriptionPriceChange(
+      subscriptionDurationUnit: result[0]! as String,
+      subscriptionDurationMultiplier: result[1]! as String,
+      startDate: result[2]! as String,
+      originalLocalPrice: result[3]! as double,
+      originalLocalPriceString: result[4]! as String,
+      newLocalPrice: result[5]! as double,
+      newLocalPriceString: result[6]! as String,
+      isConsented: result[7] as bool?,
+      priceChangeMode: result[8]! as String,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! PlatformSubscriptionPriceChange ||
+        other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(
+          subscriptionDurationUnit,
+          other.subscriptionDurationUnit,
+        ) &&
+        _deepEquals(
+          subscriptionDurationMultiplier,
+          other.subscriptionDurationMultiplier,
+        ) &&
+        _deepEquals(startDate, other.startDate) &&
+        _deepEquals(originalLocalPrice, other.originalLocalPrice) &&
+        _deepEquals(originalLocalPriceString, other.originalLocalPriceString) &&
+        _deepEquals(newLocalPrice, other.newLocalPrice) &&
+        _deepEquals(newLocalPriceString, other.newLocalPriceString) &&
+        _deepEquals(isConsented, other.isConsented) &&
+        _deepEquals(priceChangeMode, other.priceChangeMode);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'PlatformSubscriptionPriceChange(subscriptionDurationUnit: $subscriptionDurationUnit, subscriptionDurationMultiplier: $subscriptionDurationMultiplier, startDate: $startDate, originalLocalPrice: $originalLocalPrice, originalLocalPriceString: $originalLocalPriceString, newLocalPrice: $newLocalPrice, newLocalPriceString: $newLocalPriceString, isConsented: $isConsented, priceChangeMode: $priceChangeMode)';
+  }
+}
+
+/// The `OwnedProductVo` fields the public model uses, with the same rules as
+/// [PlatformProduct].
+class PlatformOwnedProduct {
+  PlatformOwnedProduct({
+    required this.itemId,
+    required this.itemName,
+    this.itemPrice,
+    required this.itemPriceString,
+    required this.currencyCode,
+    required this.type,
+    required this.paymentId,
+    required this.purchaseId,
+    required this.purchaseDate,
+    required this.subscriptionEndDate,
+    this.subscriptionPriceChange,
+    required this.acknowledgedStatus,
+    required this.obfuscatedAccountId,
+    required this.obfuscatedProfileId,
+    required this.json,
+  });
+
+  String itemId;
+
+  String itemName;
+
+  double? itemPrice;
+
+  String itemPriceString;
+
+  String currencyCode;
+
+  String type;
+
+  String paymentId;
+
+  String purchaseId;
+
+  String purchaseDate;
+
+  String subscriptionEndDate;
+
+  PlatformSubscriptionPriceChange? subscriptionPriceChange;
+
+  /// The SDK enum constant's name, or `""`.
+  String acknowledgedStatus;
+
+  String obfuscatedAccountId;
+
+  String obfuscatedProfileId;
+
+  String json;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      itemId,
+      itemName,
+      itemPrice,
+      itemPriceString,
+      currencyCode,
+      type,
+      paymentId,
+      purchaseId,
+      purchaseDate,
+      subscriptionEndDate,
+      subscriptionPriceChange,
+      acknowledgedStatus,
+      obfuscatedAccountId,
+      obfuscatedProfileId,
+      json,
+    ];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static PlatformOwnedProduct decode(Object result) {
+    result as List<Object?>;
+    return PlatformOwnedProduct(
+      itemId: result[0]! as String,
+      itemName: result[1]! as String,
+      itemPrice: result[2] as double?,
+      itemPriceString: result[3]! as String,
+      currencyCode: result[4]! as String,
+      type: result[5]! as String,
+      paymentId: result[6]! as String,
+      purchaseId: result[7]! as String,
+      purchaseDate: result[8]! as String,
+      subscriptionEndDate: result[9]! as String,
+      subscriptionPriceChange: result[10] as PlatformSubscriptionPriceChange?,
+      acknowledgedStatus: result[11]! as String,
+      obfuscatedAccountId: result[12]! as String,
+      obfuscatedProfileId: result[13]! as String,
+      json: result[14]! as String,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! PlatformOwnedProduct || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(itemId, other.itemId) &&
+        _deepEquals(itemName, other.itemName) &&
+        _deepEquals(itemPrice, other.itemPrice) &&
+        _deepEquals(itemPriceString, other.itemPriceString) &&
+        _deepEquals(currencyCode, other.currencyCode) &&
+        _deepEquals(type, other.type) &&
+        _deepEquals(paymentId, other.paymentId) &&
+        _deepEquals(purchaseId, other.purchaseId) &&
+        _deepEquals(purchaseDate, other.purchaseDate) &&
+        _deepEquals(subscriptionEndDate, other.subscriptionEndDate) &&
+        _deepEquals(subscriptionPriceChange, other.subscriptionPriceChange) &&
+        _deepEquals(acknowledgedStatus, other.acknowledgedStatus) &&
+        _deepEquals(obfuscatedAccountId, other.obfuscatedAccountId) &&
+        _deepEquals(obfuscatedProfileId, other.obfuscatedProfileId) &&
+        _deepEquals(json, other.json);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'PlatformOwnedProduct(itemId: $itemId, itemName: $itemName, itemPrice: $itemPrice, itemPriceString: $itemPriceString, currencyCode: $currencyCode, type: $type, paymentId: $paymentId, purchaseId: $purchaseId, purchaseDate: $purchaseDate, subscriptionEndDate: $subscriptionEndDate, subscriptionPriceChange: $subscriptionPriceChange, acknowledgedStatus: $acknowledgedStatus, obfuscatedAccountId: $obfuscatedAccountId, obfuscatedProfileId: $obfuscatedProfileId, json: $json)';
+  }
+}
+
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -298,8 +537,17 @@ class _PigeonCodec extends StandardMessageCodec {
     } else if (value is PlatformStoreStatus) {
       buffer.putUint8(130);
       writeValue(buffer, value.index);
-    } else if (value is PlatformProduct) {
+    } else if (value is PlatformOwnedProductFilter) {
       buffer.putUint8(131);
+      writeValue(buffer, value.index);
+    } else if (value is PlatformProduct) {
+      buffer.putUint8(132);
+      writeValue(buffer, value.encode());
+    } else if (value is PlatformSubscriptionPriceChange) {
+      buffer.putUint8(133);
+      writeValue(buffer, value.encode());
+    } else if (value is PlatformOwnedProduct) {
+      buffer.putUint8(134);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -316,7 +564,14 @@ class _PigeonCodec extends StandardMessageCodec {
         final value = readValue(buffer) as int?;
         return value == null ? null : PlatformStoreStatus.values[value];
       case 131:
+        final value = readValue(buffer) as int?;
+        return value == null ? null : PlatformOwnedProductFilter.values[value];
+      case 132:
         return PlatformProduct.decode(readValue(buffer)!);
+      case 133:
+        return PlatformSubscriptionPriceChange.decode(readValue(buffer)!);
+      case 134:
+        return PlatformOwnedProduct.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -402,5 +657,29 @@ class SamsungIapHostApi {
       isNullValid: false,
     );
     return (pigeonVar_replyValue! as List<Object?>).cast<PlatformProduct>();
+  }
+
+  Future<List<PlatformOwnedProduct>> getOwnedList(
+    PlatformOwnedProductFilter filter,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.samsung_iap_flutter_android.SamsungIapHostApi.getOwnedList$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[filter],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return (pigeonVar_replyValue! as List<Object?>)
+        .cast<PlatformOwnedProduct>();
   }
 }

@@ -13,6 +13,8 @@ enum PlatformOperationMode { production, test, testFailure }
 
 enum PlatformStoreStatus { available, notInstalled, disabled, invalid }
 
+enum PlatformOwnedProductFilter { item, subscription, all }
+
 /// `ProductVo` field for field. Kotlin sends a missing string as `""` and
 /// Dart does all interpretation.
 class PlatformProduct {
@@ -65,6 +67,74 @@ class PlatformProduct {
   String json;
 }
 
+/// The `SubscriptionPriceChangeVo` fields the public model uses. The prices
+/// are NaN when Samsung sends none.
+class PlatformSubscriptionPriceChange {
+  PlatformSubscriptionPriceChange({
+    required this.subscriptionDurationUnit,
+    required this.subscriptionDurationMultiplier,
+    required this.startDate,
+    required this.originalLocalPrice,
+    required this.originalLocalPriceString,
+    required this.newLocalPrice,
+    required this.newLocalPriceString,
+    required this.isConsented,
+    required this.priceChangeMode,
+  });
+
+  String subscriptionDurationUnit;
+  String subscriptionDurationMultiplier;
+  String startDate;
+  double originalLocalPrice;
+  String originalLocalPriceString;
+  double newLocalPrice;
+  String newLocalPriceString;
+  bool? isConsented;
+
+  /// The SDK enum constant's name, or `""`.
+  String priceChangeMode;
+}
+
+/// The `OwnedProductVo` fields the public model uses, with the same rules as
+/// [PlatformProduct].
+class PlatformOwnedProduct {
+  PlatformOwnedProduct({
+    required this.itemId,
+    required this.itemName,
+    required this.itemPrice,
+    required this.itemPriceString,
+    required this.currencyCode,
+    required this.type,
+    required this.paymentId,
+    required this.purchaseId,
+    required this.purchaseDate,
+    required this.subscriptionEndDate,
+    required this.subscriptionPriceChange,
+    required this.acknowledgedStatus,
+    required this.obfuscatedAccountId,
+    required this.obfuscatedProfileId,
+    required this.json,
+  });
+
+  String itemId;
+  String itemName;
+  double? itemPrice;
+  String itemPriceString;
+  String currencyCode;
+  String type;
+  String paymentId;
+  String purchaseId;
+  String purchaseDate;
+  String subscriptionEndDate;
+  PlatformSubscriptionPriceChange? subscriptionPriceChange;
+
+  /// The SDK enum constant's name, or `""`.
+  String acknowledgedStatus;
+  String obfuscatedAccountId;
+  String obfuscatedProfileId;
+  String json;
+}
+
 @HostApi()
 abstract class SamsungIapHostApi {
   void initialize(PlatformOperationMode mode, bool showErrorDialog);
@@ -74,4 +144,7 @@ abstract class SamsungIapHostApi {
   /// [productIds] is comma-separated; empty means every product.
   @async
   List<PlatformProduct> getProductsDetails(String productIds);
+
+  @async
+  List<PlatformOwnedProduct> getOwnedList(PlatformOwnedProductFilter filter);
 }
