@@ -22,7 +22,7 @@ jobs:
   build:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/flutter_package.yml@v1
     with:
-      flutter_version: 3.47.0
+      flutter_version: 3.47.5
       working_directory: samsung_iap_flutter_android
       coverage_excludes: "**/*.g.dart"
 
@@ -37,15 +37,15 @@ jobs:
         working-directory: samsung_iap_flutter/example
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: "temurin"
           java-version: "17"
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.47.0
+          flutter-version: 3.47.5
 
       # The Gradle wrapper and local.properties are generated, not committed.
       - name: Generate Gradle project
