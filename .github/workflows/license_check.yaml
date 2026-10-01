@@ -10,6 +10,7 @@ on:
       - main
     paths:
       - "samsung_iap_flutter/pubspec.yaml"
+      - "samsung_iap_flutter_android/pubspec.yaml"
       - "samsung_iap_flutter_platform_interface/pubspec.yaml"
       - ".github/workflows/license_check.yaml"
   push:
@@ -17,6 +18,7 @@ on:
       - main
     paths:
       - "samsung_iap_flutter/pubspec.yaml"
+      - "samsung_iap_flutter_android/pubspec.yaml"
       - "samsung_iap_flutter_platform_interface/pubspec.yaml"
       - ".github/workflows/license_check.yaml"
 
@@ -25,10 +27,19 @@ jobs:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/license_check.yml@v1
     with:
       allowed: "MIT,BSD-3-Clause,BSD-2-Clause,Apache-2.0"
+      flutter_version: 3.47.5
       working_directory: samsung_iap_flutter
+
+  license_check_android:
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/license_check.yml@v1
+    with:
+      allowed: "MIT,BSD-3-Clause,BSD-2-Clause,Apache-2.0"
+      flutter_version: 3.47.5
+      working_directory: samsung_iap_flutter_android
 
   license_check_platform_interface:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/license_check.yml@v1
     with:
       allowed: "MIT,BSD-3-Clause,BSD-2-Clause,Apache-2.0"
+      flutter_version: 3.47.5
       working_directory: samsung_iap_flutter_platform_interface

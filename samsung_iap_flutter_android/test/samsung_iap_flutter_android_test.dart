@@ -4,8 +4,7 @@ import 'package:samsung_iap_flutter_android/samsung_iap_flutter_android.dart';
 import 'package:samsung_iap_flutter_android/src/messages.g.dart';
 import 'package:samsung_iap_flutter_platform_interface/samsung_iap_flutter_platform_interface.dart';
 
-class _MockSamsungIapFlutterApi extends Mock
-    implements SamsungIapFlutterApi;
+class _MockSamsungIapFlutterApi extends Mock implements SamsungIapFlutterApi;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

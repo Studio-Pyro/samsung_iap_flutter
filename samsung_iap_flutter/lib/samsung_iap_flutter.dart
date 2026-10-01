@@ -1,7 +1,6 @@
 import 'package:samsung_iap_flutter_platform_interface/samsung_iap_flutter_platform_interface.dart';
 
-SamsungIapFlutterPlatform get _platform =>
-    SamsungIapFlutterPlatform.instance;
+SamsungIapFlutterPlatform get _platform => SamsungIapFlutterPlatform.instance;
 
 /// Returns the name of the current platform.
 Future<String> getPlatformName() async {
