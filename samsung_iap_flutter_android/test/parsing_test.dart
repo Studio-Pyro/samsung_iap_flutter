@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:samsung_iap_flutter_platform_interface/parsing.dart';
+import 'package:samsung_iap_flutter_android/src/parsing.dart';
 import 'package:samsung_iap_flutter_platform_interface/samsung_iap_flutter_platform_interface.dart';
 
 void main() {

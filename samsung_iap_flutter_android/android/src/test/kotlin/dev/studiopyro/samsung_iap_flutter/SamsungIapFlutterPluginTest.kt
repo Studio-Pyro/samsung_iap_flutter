@@ -8,7 +8,9 @@ import com.samsung.android.sdk.iap.lib.vo.ErrorVo
 import com.samsung.android.sdk.iap.lib.vo.ProductVo
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.BinaryMessenger
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.mockito.ArgumentMatchers.any
@@ -23,16 +25,23 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class SamsungIapFlutterPluginTest {
     private val helper = mock(IapHelper::class.java)
     private var store = PlatformStoreStatus.AVAILABLE
 
-    private fun attachedPlugin(): SamsungIapFlutterPlugin {
+    private fun attachedPlugin(
+        helperFactory: (Context) -> IapHelper = { helper },
+    ): SamsungIapFlutterPlugin {
         val binding = mock(FlutterPlugin.FlutterPluginBinding::class.java)
         `when`(binding.applicationContext).thenReturn(mock(Context::class.java))
         `when`(binding.binaryMessenger).thenReturn(mock(BinaryMessenger::class.java))
-        return SamsungIapFlutterPlugin(helperFactory = { helper }, storeStatus = { store })
+        return SamsungIapFlutterPlugin(helperFactory = helperFactory, storeStatus = { store })
             .apply { onAttachedToEngine(binding) }
     }
 
@@ -166,7 +175,7 @@ class SamsungIapFlutterPluginTest {
         val error = assertFailsWith<FlutterError> { initializedPlugin().getProductsDetails("") }
 
         assertEquals("store_unavailable", error.code)
-        assertEquals("NOT_INSTALLED", error.details)
+        assertEquals("notInstalled", error.details)
         verify(helper, never()).getProductsDetails(anyString(), any())
     }
 
@@ -179,16 +188,75 @@ class SamsungIapFlutterPluginTest {
     }
 
     @Test
-    fun callMapsAFalseReturnToNotSent() = runTest {
-        val error = assertFailsWith<FlutterError> { call<Unit>("startPayment") { false } }
+    fun getProductsDetailsAfterAFailedInitializeFails() = runTest {
+        val plugin = attachedPlugin(helperFactory = { throw IllegalStateException("no SDK") })
+
+        assertFailsWith<IllegalStateException> {
+            plugin.initialize(PlatformOperationMode.TEST, showErrorDialog = true)
+        }
+        val error = assertFailsWith<FlutterError> { plugin.getProductsDetails("") }
+
+        assertEquals("not_initialized", error.code)
+    }
+
+    @Test
+    fun getProductsDetailsTimesOutAfter30Seconds() = runTest {
+        doAnswer { null }.`when`(helper).getProductsDetails(anyString(), any())
+        val plugin = initializedPlugin()
+
+        val result = async { runCatching { plugin.getProductsDetails("") } }
+        advanceTimeBy(30.seconds - 1.milliseconds)
+        runCurrent()
+        assertFalse(result.isCompleted, "still waiting just before 30s")
+        advanceTimeBy(1.milliseconds)
+        runCurrent()
+        assertTrue(result.isCompleted, "timed out at 30s")
+
+        val error = result.await().exceptionOrNull() as FlutterError
+        assertEquals("timeout", error.code)
+        assertEquals("getProductsDetails", error.details)
+    }
+
+    @Test
+    fun awaitSdkIgnoresACallbackAfterTheTimeout() = runTest {
+        var done: Done<String>? = null
+        val result = async {
+            runCatching { awaitSdk("getOwnedList", INQUIRY_TIMEOUT) { done = it; true } }
+        }
+        advanceTimeBy(INQUIRY_TIMEOUT)
+        runCurrent()
+        assertEquals("timeout", (result.await().exceptionOrNull() as FlutterError).code)
+
+        var evaluated = false
+        done!!(errorVo(0)) { evaluated = true; "late" }
+
+        assertFalse(evaluated, "a late callback is a no-op")
+    }
+
+    @Test
+    fun awaitSdkWithoutATimeoutWaitsIndefinitely() = runTest {
+        var done: Done<String>? = null
+        val result = async { awaitSdk("startPayment") { done = it; true } }
+        advanceTimeBy(24.hours)
+        runCurrent()
+        assertFalse(result.isCompleted)
+
+        done!!(errorVo(0)) { "paid" }
+
+        assertEquals("paid", result.await())
+    }
+
+    @Test
+    fun awaitSdkMapsAFalseReturnToNotSent() = runTest {
+        val error = assertFailsWith<FlutterError> { awaitSdk<Unit>("startPayment") { false } }
 
         assertEquals("not_sent", error.code)
         assertEquals("startPayment", error.details)
     }
 
     @Test
-    fun callKeepsACallbackThatArrivedBeforeAFalseReturn() = runTest {
-        val value = call("getOwnedList") { done ->
+    fun awaitSdkKeepsACallbackThatArrivedBeforeAFalseReturn() = runTest {
+        val value = awaitSdk("getOwnedList") { done ->
             done(errorVo(0)) { "owned" }
             false
         }

@@ -16,13 +16,8 @@ class SamsungIapFlutterAndroid extends SamsungIapFlutterPlatform {
   new({@visibleForTesting SamsungIapHostApi? api})
     : _api = api ?? SamsungIapHostApi();
 
-  /// How long an inquiry waits for Samsung before failing.
-  @visibleForTesting
-  static const inquiryTimeout = Duration(seconds: 30);
-
   final SamsungIapHostApi _api;
   Future<void> _queue = Future.value();
-  bool _initialized = false;
 
   /// Registers this class as the default instance of
   /// [SamsungIapFlutterPlatform].
@@ -34,63 +29,36 @@ class SamsungIapFlutterAndroid extends SamsungIapFlutterPlatform {
   Future<void> initialize({
     required OperationMode mode,
     required bool showErrorDialog,
-  }) => _enqueue(() async {
-    await _api.initialize(switch (mode) {
-      OperationMode.production => PlatformOperationMode.production,
-      OperationMode.test => PlatformOperationMode.test,
-      OperationMode.testFailure => PlatformOperationMode.testFailure,
-    }, showErrorDialog);
-    _initialized = true;
-  });
+  }) => _enqueue(
+    () => _api.initialize(operationModeToPlatform(mode), showErrorDialog),
+  );
 
+  // A package check that never touches the SDK, so it skips the queue.
   @override
-  Future<GalaxyStoreStatus> getGalaxyStoreStatus() => _enqueue(() async {
-    _requireInitialized();
-    return switch (await _api.getStoreStatus()) {
-      PlatformStoreStatus.available => GalaxyStoreStatus.available,
-      PlatformStoreStatus.notInstalled => GalaxyStoreStatus.notInstalled,
-      PlatformStoreStatus.disabled => GalaxyStoreStatus.disabled,
-      PlatformStoreStatus.invalid => GalaxyStoreStatus.invalid,
-    };
-  });
+  Future<GalaxyStoreStatus> getGalaxyStoreStatus() => _mapErrors(
+    () async => storeStatusFromPlatform(await _api.getStoreStatus()),
+  );
 
   @override
   Future<List<SamsungProduct>> getProducts(List<String> productIds) =>
       _enqueue(() async {
-        _requireInitialized();
-        final products = await _api
-            .getProductsDetails(productIds.join(','))
-            .timeout(inquiryTimeout, onTimeout: () => _timedOut('getProducts'));
+        final products = await _api.getProductsDetails(productIds.join(','));
         return products.map(productFromPlatform).toList();
       });
 
   /// Runs [call] after every earlier call has settled, so a failure never
   /// blocks the calls behind it.
   Future<T> _enqueue<T>(Future<T> Function() call) {
-    final result = _queue.then((_) async {
-      try {
-        return await call();
-      } on PlatformException catch (e) {
-        throw exceptionFromPlatform(e);
-      }
-    });
+    final result = _queue.then((_) => _mapErrors(call));
     _queue = result.then<void>((_) {}, onError: (_) {});
     return result;
   }
 
-  void _requireInitialized() {
-    if (!_initialized) {
-      throw const SamsungIapException(
-        SamsungIapErrorKind.notInitialized,
-        message: 'Call initialize before any other Samsung IAP call.',
-      );
+  static Future<T> _mapErrors<T>(Future<T> Function() call) async {
+    try {
+      return await call();
+    } on PlatformException catch (e) {
+      throw exceptionFromPlatform(e);
     }
   }
-
-  static Never _timedOut(String method) => throw SamsungIapException(
-    SamsungIapErrorKind.unknown,
-    message:
-        '$method got no answer from Samsung within '
-        '${inquiryTimeout.inSeconds}s.',
-  );
 }

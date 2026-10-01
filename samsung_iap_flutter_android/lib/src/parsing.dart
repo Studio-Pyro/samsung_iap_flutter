@@ -1,8 +1,3 @@
-/// Rules for turning the Samsung IAP SDK's raw strings into model values.
-///
-/// For platform implementations. Apps use the models instead.
-library;
-
 import 'package:samsung_iap_flutter_platform_interface/samsung_iap_flutter_platform_interface.dart';
 
 /// Returns `null` for the NaN the SDK sends for a missing price.

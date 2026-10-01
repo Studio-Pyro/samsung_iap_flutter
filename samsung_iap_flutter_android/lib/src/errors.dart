@@ -26,6 +26,7 @@ const Map<String, SamsungIapErrorKind> _pluginKinds = {
   'not_initialized': SamsungIapErrorKind.notInitialized,
   'store_unavailable': SamsungIapErrorKind.storeUnavailable,
   'store_update_required': SamsungIapErrorKind.storeUpdateRequired,
+  'timeout': SamsungIapErrorKind.network,
 };
 
 /// Converts an error from the Kotlin bridge into the public error type.

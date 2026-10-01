@@ -1,6 +1,23 @@
 import 'package:samsung_iap_flutter_android/src/messages.g.dart';
-import 'package:samsung_iap_flutter_platform_interface/parsing.dart';
+import 'package:samsung_iap_flutter_android/src/parsing.dart';
 import 'package:samsung_iap_flutter_platform_interface/samsung_iap_flutter_platform_interface.dart';
+
+/// Converts the public operation mode into its wire form.
+PlatformOperationMode operationModeToPlatform(OperationMode mode) =>
+    switch (mode) {
+      OperationMode.production => PlatformOperationMode.production,
+      OperationMode.test => PlatformOperationMode.test,
+      OperationMode.testFailure => PlatformOperationMode.testFailure,
+    };
+
+/// Converts the wire store status into the public one.
+GalaxyStoreStatus storeStatusFromPlatform(PlatformStoreStatus status) =>
+    switch (status) {
+      PlatformStoreStatus.available => GalaxyStoreStatus.available,
+      PlatformStoreStatus.notInstalled => GalaxyStoreStatus.notInstalled,
+      PlatformStoreStatus.disabled => GalaxyStoreStatus.disabled,
+      PlatformStoreStatus.invalid => GalaxyStoreStatus.invalid,
+    };
 
 /// Converts the wire mirror of `ProductVo` into the public model.
 SamsungProduct productFromPlatform(PlatformProduct p) => SamsungProduct(
@@ -34,7 +51,7 @@ IntroductoryOffer? _introductoryOffer(PlatformProduct p) {
   final cycles = int.tryParse(p.tieredSubscriptionCount);
   if (period == null || cycles == null) return null;
   return IntroductoryOffer(
-    price: double.tryParse(p.tieredPrice),
+    price: finiteOrNull(double.tryParse(p.tieredPrice)),
     formattedPrice: p.tieredPriceString,
     period: period,
     cycles: cycles,

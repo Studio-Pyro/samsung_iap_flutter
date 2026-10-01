@@ -13,7 +13,8 @@ class SamsungIap {
 
   SamsungIapFlutterPlatform get _platform => SamsungIapFlutterPlatform.instance;
 
-  /// Configures Samsung IAP. Call it once before any other method.
+  /// Configures Samsung IAP. Call it once before any method other than
+  /// [getGalaxyStoreStatus].
   ///
   /// [mode] defaults to [OperationMode.production], so a forgotten setting
   /// never ships a test build. With [showErrorDialog] `true`, Samsung shows
@@ -23,16 +24,19 @@ class SamsungIap {
     bool showErrorDialog = true,
   }) => _platform.initialize(mode: mode, showErrorDialog: showErrorDialog);
 
-  /// Reports whether Galaxy Store can serve purchases. Shows no dialog.
+  /// Reports whether Galaxy Store can serve purchases. Shows no dialog and
+  /// works before [initialize].
   Future<GalaxyStoreStatus> getGalaxyStoreStatus() =>
       _platform.getGalaxyStoreStatus();
 
   /// Fetches the products with [productIds], or every product when it is
   /// empty. The order of the result is not guaranteed.
   ///
-  /// Throws [SamsungIapErrorKind.invalidArgument] for an empty ID or one that
-  /// contains a comma, and [SamsungIapErrorKind.storeUnavailable] when Galaxy
-  /// Store is not usable.
+  /// Throws a [SamsungIapException] of kind
+  /// [SamsungIapErrorKind.invalidArgument] for an empty ID or one that
+  /// contains a comma, [SamsungIapErrorKind.storeUnavailable] when Galaxy
+  /// Store is not usable, and [SamsungIapErrorKind.network] when Samsung does
+  /// not answer within 30 seconds.
   Future<List<SamsungProduct>> getProducts([
     List<String> productIds = const [],
   ]) async {

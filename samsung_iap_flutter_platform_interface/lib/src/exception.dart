@@ -17,7 +17,8 @@ enum SamsungIapErrorKind {
   /// The product or IAP itself is not sold in the user's country.
   notAvailableInCountry,
 
-  /// A network problem. Safe to retry.
+  /// A network problem, or no answer from Samsung within 30 seconds. Safe to
+  /// retry.
   network,
 
   /// Galaxy Store is missing, disabled or not genuine.
@@ -33,7 +34,8 @@ enum SamsungIapErrorKind {
   /// products before telling the user anything.
   purchaseResultUnknown,
 
-  /// Another Samsung IAP call was running.
+  /// Another Samsung IAP call was running, or Samsung is still finishing an
+  /// inquiry that timed out.
   busy,
 
   /// The plugin rejected an argument before calling Samsung.
@@ -48,8 +50,8 @@ enum SamsungIapErrorKind {
   /// Samsung's catch-all error. See [SamsungIapException.detailCode].
   general,
 
-  /// Anything else, including a call Samsung never answered. See
-  /// [SamsungIapException.code] and [SamsungIapException.message].
+  /// Anything else. See [SamsungIapException.code] and
+  /// [SamsungIapException.message].
   unknown,
 }
 

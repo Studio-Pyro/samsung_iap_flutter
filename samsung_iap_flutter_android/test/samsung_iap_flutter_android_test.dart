@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:fake_async/fake_async.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -80,40 +79,54 @@ void main() {
     expect(SamsungIapFlutterPlatform.instance, isA<SamsungIapFlutterAndroid>());
   });
 
-  test('initialize in any mode sends it and unlocks the other calls', () async {
+  test('initialize sends every operation mode and the dialog flag', () async {
     final modes = {
       OperationMode.production: PlatformOperationMode.production,
       OperationMode.test: PlatformOperationMode.test,
       OperationMode.testFailure: PlatformOperationMode.testFailure,
     };
-    when(api.getStoreStatus)
-        .thenAnswer((_) async => PlatformStoreStatus.available);
     for (final MapEntry(key: mode, value: wire) in modes.entries) {
-      final plugin = SamsungIapFlutterAndroid(api: api);
       await plugin.initialize(mode: mode, showErrorDialog: false);
 
       verify(() => api.initialize(wire, false)).called(1);
-      expect(
-        await plugin.getGalaxyStoreStatus(),
-        GalaxyStoreStatus.available,
-        reason: 'initialized in $mode',
-      );
     }
   });
 
-  test('getGalaxyStoreStatus maps every status', () async {
-    await initialize();
-    final statuses = {
-      PlatformStoreStatus.available: GalaxyStoreStatus.available,
-      PlatformStoreStatus.notInstalled: GalaxyStoreStatus.notInstalled,
-      PlatformStoreStatus.disabled: GalaxyStoreStatus.disabled,
-      PlatformStoreStatus.invalid: GalaxyStoreStatus.invalid,
-    };
-    for (final MapEntry(key: wire, value: status) in statuses.entries) {
-      when(api.getStoreStatus).thenAnswer((_) async => wire);
+  group('getGalaxyStoreStatus', () {
+    test('maps every status, without initialize', () async {
+      final statuses = {
+        PlatformStoreStatus.available: GalaxyStoreStatus.available,
+        PlatformStoreStatus.notInstalled: GalaxyStoreStatus.notInstalled,
+        PlatformStoreStatus.disabled: GalaxyStoreStatus.disabled,
+        PlatformStoreStatus.invalid: GalaxyStoreStatus.invalid,
+      };
+      for (final MapEntry(key: wire, value: status) in statuses.entries) {
+        when(api.getStoreStatus).thenAnswer((_) async => wire);
 
-      expect(await plugin.getGalaxyStoreStatus(), status);
-    }
+        expect(await plugin.getGalaxyStoreStatus(), status);
+      }
+      verifyNever(() => api.initialize(any(), any()));
+    });
+
+    test('answers while a getProducts call is still waiting', () async {
+      final pending = Completer<List<PlatformProduct>>();
+      when(() => api.getProductsDetails(any()))
+          .thenAnswer((_) => pending.future);
+      when(api.getStoreStatus)
+          .thenAnswer((_) async => PlatformStoreStatus.available);
+
+      final products = plugin.getProducts([]);
+
+      expect(await plugin.getGalaxyStoreStatus(), GalaxyStoreStatus.available);
+      pending.complete([]);
+      await products;
+    });
+
+    test('maps a bridge error', () async {
+      when(api.getStoreStatus).thenThrow(PlatformException(code: 'boom'));
+
+      await expectLater(plugin.getGalaxyStoreStatus(), _throwsKind(.unknown));
+    });
   });
 
   group('getProducts', () {
@@ -223,11 +236,12 @@ void main() {
       expect(products.map((p) => p.introductoryOffer), [null, null, null]);
     });
 
-    test('keeps an introductory offer without a numeric price', () async {
+    test('keeps an intro offer whose price is not finite', () async {
       when(() => api.getProductsDetails(any())).thenAnswer(
         (_) async => [
           _wire(
             tieredSubscriptionYN: 'Y',
+            tieredPrice: 'NaN',
             tieredPriceString: 'Free',
             tieredSubscriptionDurationUnit: 'MONTH',
             tieredSubscriptionDurationMultiplier: '1',
@@ -326,6 +340,7 @@ void main() {
         'not_initialized': SamsungIapErrorKind.notInitialized,
         'store_unavailable': SamsungIapErrorKind.storeUnavailable,
         'store_update_required': SamsungIapErrorKind.storeUpdateRequired,
+        'timeout': SamsungIapErrorKind.network,
         'IllegalStateException': SamsungIapErrorKind.unknown,
       };
       for (final MapEntry(key: code, value: kind) in kinds.entries) {
@@ -341,13 +356,13 @@ void main() {
       final e = await failWith(
         PlatformException(
           code: 'store_unavailable',
-          message: 'Galaxy Store is unusable: DISABLED',
-          details: 'DISABLED',
+          message: 'Galaxy Store is unusable: disabled',
+          details: 'disabled',
         ),
       );
 
-      expect(e.message, 'Galaxy Store is unusable: DISABLED');
-      expect(e.details, 'DISABLED');
+      expect(e.message, 'Galaxy Store is unusable: disabled');
+      expect(e.details, 'disabled');
     });
 
     test('treats a malformed sdk error as unknown', () async {
@@ -360,97 +375,51 @@ void main() {
     });
   });
 
-  group('before initialize', () {
-    test(
-      'every call fails with notInitialized without reaching Samsung',
-      () async {
-        await expectLater(
-          plugin.getGalaxyStoreStatus(),
-          _throwsKind(.notInitialized),
-        );
-        await expectLater(plugin.getProducts([]), _throwsKind(.notInitialized));
-        verifyNever(api.getStoreStatus);
-        verifyNever(() => api.getProductsDetails(any()));
-      },
-    );
-
-    test('a failed initialize leaves the plugin uninitialized', () async {
-      when(() => api.initialize(any(), any()))
-          .thenThrow(PlatformException(code: 'IllegalStateException'));
-
-      await expectLater(initialize(), _throwsKind(.unknown));
-      await expectLater(plugin.getProducts([]), _throwsKind(.notInitialized));
-    });
-  });
-
   group('queue', () {
-    setUp(initialize);
-
     test('sends a call only after the previous one settled', () async {
       final first = Completer<List<PlatformProduct>>();
       when(() => api.getProductsDetails('first'))
           .thenAnswer((_) => first.future);
-      when(() => api.getStoreStatus())
-          .thenAnswer((_) async => PlatformStoreStatus.available);
+      when(() => api.getProductsDetails('second')).thenAnswer((_) async => []);
 
-      final products = plugin.getProducts(['first']);
-      final status = plugin.getGalaxyStoreStatus();
+      final firstProducts = plugin.getProducts(['first']);
+      final secondProducts = plugin.getProducts(['second']);
       await pumpEventQueue();
 
-      verifyNever(api.getStoreStatus);
+      verifyNever(() => api.getProductsDetails('second'));
 
       first.complete([]);
-      await products;
-      expect(await status, GalaxyStoreStatus.available);
+      await firstProducts;
+      await secondProducts;
+      verify(() => api.getProductsDetails('second')).called(1);
     });
 
     test('a failed call does not block the next one', () async {
-      when(() => api.getProductsDetails(any()))
+      when(() => api.getProductsDetails('first'))
           .thenThrow(PlatformException(code: 'not_sent'));
-      when(() => api.getStoreStatus())
-          .thenAnswer((_) async => PlatformStoreStatus.disabled);
+      when(() => api.getProductsDetails('second'))
+          .thenAnswer((_) async => [_wire(itemId: 'second')]);
 
-      final failed = plugin.getProducts([]);
-      final status = plugin.getGalaxyStoreStatus();
+      final failed = plugin.getProducts(['first']);
+      final next = plugin.getProducts(['second']);
 
       await expectLater(failed, _throwsKind(.busy));
-      expect(await status, GalaxyStoreStatus.disabled);
+      expect((await next).single.id, 'second');
     });
-  });
 
-  test('getProducts times out after 30s and ignores the late answer', () {
-    fakeAsync((async) {
-      // The queue's first future must belong to the fake zone.
-      plugin = SamsungIapFlutterAndroid(api: api);
-      final answer = Completer<List<PlatformProduct>>();
-      when(() => api.getProductsDetails(any()))
-          .thenAnswer((_) => answer.future);
-      when(() => api.getStoreStatus())
-          .thenAnswer((_) async => PlatformStoreStatus.available);
+    test('initialize runs before a call made without awaiting it', () async {
+      when(() => api.getProductsDetails(any())).thenAnswer((_) async => []);
+      final initialized = Completer<void>();
+      when(() => api.initialize(any(), any()))
+          .thenAnswer((_) => initialized.future);
+
       unawaited(initialize());
-      async.flushMicrotasks();
+      final products = plugin.getProducts([]);
+      await pumpEventQueue();
 
-      SamsungIapException? error;
-      unawaited(
-        plugin.getProducts([]).catchError((Object e) {
-          error = e as SamsungIapException;
-          return <SamsungProduct>[];
-        }),
-      );
-      GalaxyStoreStatus? status;
-      unawaited(plugin.getGalaxyStoreStatus().then((s) => status = s));
-
-      async.elapse(const Duration(seconds: 29));
-      expect(error, isNull);
-      expect(status, isNull);
-
-      async.elapse(const Duration(seconds: 1));
-      expect(error?.kind, SamsungIapErrorKind.unknown);
-      expect(error?.message, contains('30s'));
-      expect(status, GalaxyStoreStatus.available);
-
-      answer.completeError(PlatformException(code: 'sdk'));
-      async.flushMicrotasks();
+      verifyNever(() => api.getProductsDetails(any()));
+      initialized.complete();
+      await products;
     });
   });
 }

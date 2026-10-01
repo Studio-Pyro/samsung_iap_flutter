@@ -8,7 +8,14 @@ import com.samsung.android.sdk.iap.lib.vo.ErrorVo
 import com.samsung.android.sdk.iap.lib.vo.ProductVo
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeout
+
+/** How long an inquiry waits for Samsung. Payments wait indefinitely. */
+internal val INQUIRY_TIMEOUT = 30.seconds
 
 class SamsungIapFlutterPlugin(
     private val helperFactory: (Context) -> IapHelper = IapHelper::getInstance,
@@ -41,7 +48,7 @@ class SamsungIapFlutterPlugin(
     override suspend fun getProductsDetails(productIds: String): List<PlatformProduct> {
         val helper = requireHelper()
         requireStore()
-        return call("getProductsDetails") { done ->
+        return awaitSdk("getProductsDetails", INQUIRY_TIMEOUT) { done ->
             helper.getProductsDetails(productIds) { error, products ->
                 done(error) { products.map { it.toPlatform() } }
             }
@@ -55,7 +62,8 @@ class SamsungIapFlutterPlugin(
     private fun requireStore() {
         val status = storeStatus(context)
         if (status != PlatformStoreStatus.AVAILABLE) {
-            throw FlutterError("store_unavailable", "Galaxy Store is unusable: $status", status.name)
+            val name = status.publicName
+            throw FlutterError("store_unavailable", "Galaxy Store is unusable: $name", name)
         }
     }
 }
@@ -68,25 +76,44 @@ internal typealias Done<T> = (error: ErrorVo, value: () -> T) -> Unit
  *
  * [start] invokes the SDK and returns what it returned. A `false` return means
  * the SDK will never call back. Only the first callback counts, including one
- * that arrives before [start] returns.
+ * that arrives before [start] returns. With a [timeout], an unanswered call
+ * fails with `timeout` and a later callback is ignored.
  */
-internal suspend fun <T> call(name: String, start: (Done<T>) -> Boolean): T =
-    suspendCancellableCoroutine { continuation ->
-        val finished = AtomicBoolean(false)
-        fun finish(result: Result<T>) {
-            if (finished.compareAndSet(false, true)) continuation.resumeWith(result)
+internal suspend fun <T> awaitSdk(
+    name: String,
+    timeout: Duration? = null,
+    start: (Done<T>) -> Boolean,
+): T {
+    val await = suspend {
+        suspendCancellableCoroutine<T> { continuation ->
+            val finished = AtomicBoolean(false)
+            continuation.invokeOnCancellation { finished.set(true) }
+            fun finish(result: () -> Result<T>) {
+                if (finished.compareAndSet(false, true)) continuation.resumeWith(result())
+            }
+            val sent = start { error, value ->
+                finish {
+                    if (error.errorCode == HelperDefine.IAP_ERROR_NONE) {
+                        runCatching(value)
+                    } else {
+                        Result.failure(error.toFlutterError())
+                    }
+                }
+            }
+            if (!sent) finish { Result.failure(FlutterError("not_sent", "$name was not sent.", name)) }
         }
-        val sent = start { error, value ->
-            finish(
-                if (error.errorCode == HelperDefine.IAP_ERROR_NONE) {
-                    runCatching(value)
-                } else {
-                    Result.failure(error.toFlutterError())
-                },
-            )
-        }
-        if (!sent) finish(Result.failure(FlutterError("not_sent", "$name was not sent.", name)))
     }
+    if (timeout == null) return await()
+    return try {
+        withTimeout(timeout) { await() }
+    } catch (_: TimeoutCancellationException) {
+        throw FlutterError(
+            "timeout",
+            "$name got no answer from Samsung within ${timeout.inWholeSeconds}s.",
+            name,
+        )
+    }
+}
 
 internal fun galaxyStoreStatus(context: Context): PlatformStoreStatus = when {
     !HelperUtil.isInstalledAppsPackage(context) -> PlatformStoreStatus.NOT_INSTALLED
@@ -94,6 +121,15 @@ internal fun galaxyStoreStatus(context: Context): PlatformStoreStatus = when {
     !HelperUtil.isValidAppsPackage(context) -> PlatformStoreStatus.INVALID
     else -> PlatformStoreStatus.AVAILABLE
 }
+
+/** The name of the matching public `GalaxyStoreStatus`. */
+private val PlatformStoreStatus.publicName: String
+    get() = when (this) {
+        PlatformStoreStatus.AVAILABLE -> "available"
+        PlatformStoreStatus.NOT_INSTALLED -> "notInstalled"
+        PlatformStoreStatus.DISABLED -> "disabled"
+        PlatformStoreStatus.INVALID -> "invalid"
+    }
 
 private fun PlatformOperationMode.toSdk(): HelperDefine.OperationMode = when (this) {
     PlatformOperationMode.PRODUCTION -> HelperDefine.OperationMode.OPERATION_MODE_PRODUCTION
