@@ -179,6 +179,7 @@ void main() {
         ),
       );
       expect(month.toString(), 'SubscriptionPeriod(1 month)');
+      expect(offer.toString(), 'IntroductoryOffer(£0.99 x 3)');
       expect(_product().toString(), 'SamsungProduct(coins_100, £0.99)');
     });
   });

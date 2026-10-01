@@ -55,10 +55,12 @@ class IntroductoryOffer {
 
   @override
   int get hashCode => _fields.hashCode;
+
+  @override
+  String toString() => 'IntroductoryOffer($formattedPrice x $cycles)';
 }
 
-/// A product registered in Seller Portal, as returned by
-/// `getProducts`.
+/// A product registered in Seller Portal, as returned by `getProducts`.
 @immutable
 class SamsungProduct {
   /// Creates a product.
