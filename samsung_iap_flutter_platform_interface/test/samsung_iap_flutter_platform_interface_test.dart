@@ -58,7 +58,6 @@ void main() {
       );
       expect(platform.getGalaxyStoreStatus, throwsUnimplementedError);
       expect(() => platform.getProducts([]), throwsUnimplementedError);
-      expect(platform.getPlatformName, throwsUnimplementedError);
     });
 
     test('accepts an instance that extends the base class', () {

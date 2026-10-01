@@ -40,11 +40,6 @@ abstract class SamsungIapFlutterPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  /// Return the current platform name.
-  Future<String?> getPlatformName() {
-    throw UnimplementedError('getPlatformName() has not been implemented.');
-  }
-
   /// Sets the operation mode and whether Samsung shows its own error dialogs.
   Future<void> initialize({
     required OperationMode mode,
