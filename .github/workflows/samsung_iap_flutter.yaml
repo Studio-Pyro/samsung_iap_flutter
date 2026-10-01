@@ -48,12 +48,9 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: "temurin"
-          java-version: "11"
+          java-version: "17"
 
       - uses: subosito/flutter-action@v2
-
-      - name: Install Fluttium
-        run: flutter pub global activate fluttium_cli
 
       - name: AVD Cache
         uses: actions/cache@v3
@@ -78,11 +75,5 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
-          script: fluttium test flows/test_platform_name.yaml -d android
+          script: flutter test integration_test
           working-directory: samsung_iap_flutter/example
-
-
-
-
-
-
