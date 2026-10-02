@@ -408,20 +408,6 @@ class SamsungIapFlutterPluginTest : PluginTestBase() {
         }
     }
 
-    @TestFactory
-    fun ackCallsMapAFalseReturnToNotSent() = ackCalls.map { ack ->
-        DynamicTest.dynamicTest(ack.name) {
-            reset(helper)
-            runTest {
-                doAnswer { false }.`when`(helper).let(ack.sdk)
-
-                val error = assertFailsWith<FlutterError> { ack.call(initializedPlugin()) }
-
-                assertEquals("not_sent" to ack.name, error.code to error.details)
-            }
-        }
-    }
-
     @Test
     fun onlyAcknowledgeChecksTheGalaxyStoreVersionLikeTheSdk() = runTest {
         mockStatic(Log::class.java).use {

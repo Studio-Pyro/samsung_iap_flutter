@@ -141,26 +141,26 @@ class GuardedSdkCallsTest : PluginTestBase() {
                 reset(helper)
                 answer(guarded) { guarded.callBack(it, error, null) }
 
-                val failure = runCatching { runTest { guarded.call(initializedPlugin()) } }
-                    .exceptionOrNull() as FlutterError
+                runTest {
+                    val failure = assertFailsWith<FlutterError> { guarded.call(initializedPlugin()) }
 
-                assertEquals("result_unknown", failure.code)
-                assertEquals(guarded.name, failure.details)
+                    assertEquals("result_unknown" to guarded.name, failure.code to failure.details)
+                }
             }
         }
     }
 
     @TestFactory
-    fun paymentsMapAFalseReturnToNotSent() = paymentCalls.map { guarded ->
+    fun sentCallsMapAFalseReturnToNotSent() = (ackCalls + paymentCalls).map { guarded ->
         DynamicTest.dynamicTest(guarded.name) {
             reset(helper)
-            doAnswer { false }.`when`(helper).let(guarded.sdk)
+            runTest {
+                doAnswer { false }.`when`(helper).let(guarded.sdk)
 
-            val error = runCatching { runTest { guarded.call(initializedPlugin()) } }
-                .exceptionOrNull() as FlutterError
+                val error = assertFailsWith<FlutterError> { guarded.call(initializedPlugin()) }
 
-            assertEquals("not_sent", error.code)
-            assertEquals(guarded.name, error.details)
+                assertEquals("not_sent" to guarded.name, error.code to error.details)
+            }
         }
     }
 }
