@@ -42,14 +42,7 @@ class SamsungIap {
   Future<List<SamsungProduct>> getProducts([
     List<String> productIds = const [],
   ]) async {
-    for (final id in productIds) {
-      if (id.trim().isEmpty || id.contains(',')) {
-        throw SamsungIapException(
-          SamsungIapErrorKind.invalidArgument,
-          message: 'Invalid product ID: "$id".',
-        );
-      }
-    }
+    _checkIds('product', productIds);
     return await _platform.getProducts(productIds);
   }
 
@@ -108,6 +101,61 @@ class SamsungIap {
       obfuscatedProfileId: obfuscatedProfileId,
     );
   }
+
+  /// Consumes the purchases with [purchaseIds], so the user can buy those
+  /// items again. Use it for repeatable items such as coins, after you have
+  /// granted them.
+  ///
+  /// Returns one [PurchaseAckResult] per purchase. A batch can partly fail,
+  /// so check each result. [PurchaseAckResult.isProcessed] is `true` for a
+  /// purchase that is done, including one that an earlier call handled.
+  ///
+  /// Throws a [SamsungIapException] when the call as a whole fails: of kind
+  /// [SamsungIapErrorKind.invalidArgument] for an empty list, an empty ID or
+  /// one that contains a comma, [SamsungIapErrorKind.storeUnavailable] when
+  /// Galaxy Store is not usable, and [SamsungIapErrorKind.network] when
+  /// Samsung does not answer within 30 seconds. Samsung may still apply a
+  /// call that timed out, and a retry then reports
+  /// [AckStatus.alreadyProcessed].
+  Future<List<PurchaseAckResult>> consume(List<String> purchaseIds) async {
+    _checkPurchaseIds(purchaseIds);
+    return await _platform.consume(purchaseIds);
+  }
+
+  /// Acknowledges the purchases with [purchaseIds] without consuming them.
+  /// Use it for permanent unlocks and subscriptions, after you have granted
+  /// them.
+  ///
+  /// Returns one [PurchaseAckResult] per purchase, and throws, like
+  /// [consume]. It also throws a [SamsungIapException] of kind
+  /// [SamsungIapErrorKind.storeUpdateRequired] when Galaxy Store is older
+  /// than 4.5.90, which cannot acknowledge.
+  Future<List<PurchaseAckResult>> acknowledge(List<String> purchaseIds) async {
+    _checkPurchaseIds(purchaseIds);
+    return await _platform.acknowledge(purchaseIds);
+  }
+}
+
+/// Rejects an ID that Samsung's comma-joined lists cannot carry.
+void _checkIds(String kind, List<String> ids) {
+  for (final id in ids) {
+    if (id.trim().isEmpty || id.contains(',')) {
+      throw SamsungIapException(
+        SamsungIapErrorKind.invalidArgument,
+        message: 'Invalid $kind ID: "$id".',
+      );
+    }
+  }
+}
+
+void _checkPurchaseIds(List<String> ids) {
+  if (ids.isEmpty) {
+    throw const SamsungIapException(
+      SamsungIapErrorKind.invalidArgument,
+      message: 'The list of purchase IDs is empty.',
+    );
+  }
+  _checkIds('purchase', ids);
 }
 
 // The same pattern the SDK refuses with, so the app gets invalidArgument
