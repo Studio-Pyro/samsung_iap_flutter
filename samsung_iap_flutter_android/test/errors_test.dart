@@ -98,12 +98,13 @@ void main() {
   test('maps both shapes of a Samsung server error to one model', () async {
     // The service path passes Galaxy Store's raw server code and no details.
     // The payment path passes a -10xx code with the server code in details.
-    // The first four rows are what a Galaxy S22 with Galaxy Store 4.6.11.4
+    // The first five rows are what a Galaxy S22 with Galaxy Store 4.6.11.4
     // returned in TEST and TEST_FAILURE modes.
     final rows = <(int, String?), (SamsungIapErrorKind, int?)>{
       (9201, ''): (SamsungIapErrorKind.productNotFound, 9201),
       (9005, ''): (SamsungIapErrorKind.general, 9005),
       (9000, ''): (SamsungIapErrorKind.general, 9000),
+      (9207, ''): (SamsungIapErrorKind.productNotFound, 9207),
       (-1005, 'IS9207/6050/x'): (SamsungIapErrorKind.productNotFound, 9207),
       (-1002, 'IS9201/9001/RLgulQFMNH'): (
         SamsungIapErrorKind.productNotFound,
@@ -111,7 +112,6 @@ void main() {
       ),
       (-1007, 'IS9201/9001/x'): (SamsungIapErrorKind.productNotFound, 9201),
       (9202, null): (SamsungIapErrorKind.productNotFound, 9202),
-      (9207, ''): (SamsungIapErrorKind.productNotFound, 9207),
       (9224, ''): (SamsungIapErrorKind.alreadyOwned, 9224),
       (-1002, 'IS9224/6050/x'): (SamsungIapErrorKind.alreadyOwned, 9224),
       (9134, ''): (SamsungIapErrorKind.notAvailableInCountry, 9134),

@@ -5,7 +5,6 @@ const Map<int, SamsungIapErrorKind> _sdkKinds = {
   1: SamsungIapErrorKind.userCanceled,
   -1000: SamsungIapErrorKind.initializationFailed,
   -1001: SamsungIapErrorKind.storeUpdateRequired,
-  -1002: SamsungIapErrorKind.general,
   -1003: SamsungIapErrorKind.alreadyOwned,
   -1005: SamsungIapErrorKind.productNotFound,
   -1006: SamsungIapErrorKind.purchaseResultUnknown,
@@ -59,16 +58,15 @@ SamsungIapException exceptionFromPlatform(PlatformException e) {
       'dialogShown': final bool dialogShown,
     },
   )) {
-    // The SDK's own codes are 0, 1 (canceled) and -10xx.
-    final isServerCode = code > 1;
-    final detailCode = isServerCode ? code : parseDetailCode(details);
-    final kind = isServerCode
-        ? SamsungIapErrorKind.general
+    // Galaxy Store's raw server codes are positive. HelperDefine codes are 0,
+    // 1 (canceled) and negative.
+    final isRawServerCode = code > 1;
+    final detailCode = isRawServerCode ? code : parseDetailCode(details);
+    final kind = isRawServerCode || code == -1002
+        ? _detailKinds[detailCode] ?? SamsungIapErrorKind.general
         : _sdkKinds[code] ?? SamsungIapErrorKind.unknown;
     return SamsungIapException(
-      kind == SamsungIapErrorKind.general
-          ? _detailKinds[detailCode] ?? kind
-          : kind,
+      kind,
       message: e.message ?? '',
       code: code,
       detailCode: detailCode,
