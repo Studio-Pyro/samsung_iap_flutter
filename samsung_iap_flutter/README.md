@@ -174,7 +174,7 @@ costs the same or more an upgrade, and a change to a cheaper tier a downgrade.
 
 | Mode | When the new tier starts | How Samsung bills | Use for |
 |---|---|---|---|
-| `instantProratedDate` | Now | The value left on the old tier becomes time on the new one, so the renewal date moves. | Upgrades. Samsung's guides disagree on downgrades. |
+| `instantProratedDate` | Now | The value left on the old tier becomes time on the new one, so the renewal date moves. | Upgrades. See below for downgrades. |
 | `instantProratedCharge` | Now | Charges the price difference for the rest of the period. The renewal date stays. | Upgrades only |
 | `instantNoProration` | Now | Charges the new price from the next renewal. | Upgrades only |
 | `deferred` | At the next renewal | Charges the new price at renewal. The user cannot change plans again until then. | Downgrades |
