@@ -204,12 +204,55 @@ The plugin rejects these arguments with `invalidArgument` before it calls Samsun
 Samsung's docs describe a change to another tier, but neither they nor the SDK reject the same
 tier. The plugin passes such a change on and reports Samsung's answer.
 
+## Checking promotion eligibility
+
+A subscription can start with a free trial or an introductory price. Samsung gives each user these
+offers once per subscription. Call `getPromotionEligibility` with the subscription IDs before you
+show a paywall, and advertise an offer only when Samsung reports it for that user.
+
+```dart
+final eligibility = await iap.getPromotionEligibility(['monthly', 'yearly']);
+for (final e in eligibility) {
+  final badge = switch (e.pricing) {
+    PromotionPricing.freeTrial => 'Free trial',
+    PromotionPricing.tieredPrice => 'Intro price',
+    PromotionPricing.regularPrice || PromotionPricing.unknown => null,
+  };
+  // Show badge next to the product with ID e.productId.
+}
+```
+
+Each `PromotionEligibility` has the `productId` and one `pricing`:
+
+| `pricing` | The user would get | Details on `SamsungProduct` |
+|---|---|---|
+| `freeTrial` | The free trial | `freeTrialDays` |
+| `tieredPrice` | The introductory price | `introductoryOffer` |
+| `regularPrice` | The regular price, with no offer | `formattedPrice` |
+| `unknown` | A value this plugin version does not know | `rawJson` of the eligibility |
+
+Match the results to your products by `productId`, because their order is not guaranteed.
+
+The free trial and the introductory price do not apply again. After a user subscribes, Samsung
+reports `regularPrice` for that subscription, also when the user subscribes again after cancelling.
+This includes license testers. To test an offer again, use a different tester, or register a new
+subscription in Seller Portal. See Samsung's
+[Test subscriptions][test_subs_link] guide.
+
+The call runs like `getProducts`. It waits up to 30 seconds for Samsung, then throws `network`.
+It throws `storeUnavailable` when Galaxy Store is not usable. The plugin rejects these arguments with
+`invalidArgument` before it calls Samsung:
+
+- An empty list.
+- An empty ID, or an ID that contains a comma.
+
 [ack_api_link]: https://developer.samsung.com/iap/api/iap-purchase-acknowledgment.html
 [iap_api_link]: https://developer.samsung.com/iap/api/get-started.html
 [coverage_badge]: coverage_badge.svg
 [license_badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [license_link]: https://opensource.org/licenses/MIT
 [proration_link]: https://developer.samsung.com/iap/subscription-guide/manage-subscription-plan/proration-modes.html
+[test_subs_link]: https://developer.samsung.com/iap/test-guide/test-subscriptions.html
 [logo_black]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_black.png#gh-light-mode-only
 [logo_white]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_white.png#gh-dark-mode-only
 [very_good_analysis_badge]: https://img.shields.io/badge/style-very_good_analysis-B22C89.svg
