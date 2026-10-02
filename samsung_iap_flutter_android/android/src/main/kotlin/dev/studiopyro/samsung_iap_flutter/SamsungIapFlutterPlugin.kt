@@ -46,8 +46,6 @@ class SamsungIapFlutterPlugin(
 
     override fun getStoreStatus(): PlatformStoreStatus = storeStatus(context)
 
-    // getProductsDetails never calls back when Galaxy Store is unusable, so
-    // the store is checked first.
     override suspend fun getProductsDetails(productIds: String): List<PlatformProduct> {
         val helper = requireHelper()
         requireStore()
@@ -69,8 +67,6 @@ class SamsungIapFlutterPlugin(
         }
     }
 
-    // Without the store check, Samsung's payment screen shows its own
-    // install, enable or update dialog for Galaxy Store.
     override suspend fun startPayment(
         itemId: String,
         obfuscatedAccountId: String?,
@@ -88,6 +84,11 @@ class SamsungIapFlutterPlugin(
     private fun requireHelper(): IapHelper =
         helper ?: throw FlutterError("not_initialized", "Call initialize first.")
 
+    /**
+     * Fails unless Galaxy Store is usable. Every SDK call checks this first:
+     * without it, `getProductsDetails` never calls back, and `startPayment`
+     * shows Samsung's own install, enable or update dialog.
+     */
     private fun requireStore() {
         val status = storeStatus(context)
         if (status != PlatformStoreStatus.AVAILABLE) {

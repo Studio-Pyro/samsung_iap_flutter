@@ -169,11 +169,11 @@ class SamsungIapFlutterPluginTest {
         assertEquals(listOf("late"), result.await().map { it.itemId })
     }
 
-    private fun answerOwned(sent: Boolean = true, vararg owned: OwnedProductVo) {
+    private fun answerOwned(vararg owned: OwnedProductVo) {
         doAnswer { invocation ->
             invocation.getArgument<OnGetOwnedListListener>(1)
                 .onGetOwnedProducts(errorVo(0), arrayListOf(*owned))
-            sent
+            true
         }.`when`(helper).getOwnedList(anyString(), any())
     }
 
@@ -205,7 +205,7 @@ class SamsungIapFlutterPluginTest {
             `when`(it.isConsented()).thenReturn(true)
             `when`(it.priceChangeMode).thenReturn(PriceChangeMode.PRICE_INCREASE_USER_AGREEMENT_REQUIRED)
         }
-        answerOwned(owned = arrayOf(ownedVo(priceChange)))
+        answerOwned(ownedVo(priceChange))
 
         val owned = initializedPlugin().getOwnedList(PlatformOwnedProductFilter.ALL).single()
 
@@ -238,29 +238,21 @@ class SamsungIapFlutterPluginTest {
     }
 
     @Test
-    fun getOwnedListMapsAnAbsentPriceChangeAndNullEnums() = runTest {
+    fun getOwnedListMapsAnAbsentPriceChangeAndNullFieldsToEmpty() = runTest {
         val unparsed = mock(SubscriptionPriceChangeVo::class.java).also {
             `when`(it.isConsented()).thenReturn(null)
         }
-        answerOwned(owned = arrayOf(ownedVo(), ownedVo(unparsed)))
+        val broken = ownedVo(unparsed).also { `when`(it.acknowledgedStatus).thenReturn(null) }
+        answerOwned(ownedVo(), broken)
 
-        val (plain, broken) = initializedPlugin().getOwnedList(PlatformOwnedProductFilter.ALL)
+        val (plain, mapped) = initializedPlugin().getOwnedList(PlatformOwnedProductFilter.ALL)
 
         assertEquals(null, plain.subscriptionPriceChange)
-        val change = broken.subscriptionPriceChange!!
+        assertEquals("", mapped.acknowledgedStatus)
+        val change = mapped.subscriptionPriceChange!!
         assertEquals("", change.priceChangeMode)
         assertEquals(false, change.isConsented, "a null flag arrives as false")
         assertEquals("", change.startDate)
-    }
-
-    @Test
-    fun getOwnedListMapsANullAcknowledgedStatusToEmpty() = runTest {
-        val vo = ownedVo().also { `when`(it.acknowledgedStatus).thenReturn(null) }
-        answerOwned(owned = arrayOf(vo))
-
-        val owned = initializedPlugin().getOwnedList(PlatformOwnedProductFilter.ALL).single()
-
-        assertEquals("", owned.acknowledgedStatus)
     }
 
     @Test
