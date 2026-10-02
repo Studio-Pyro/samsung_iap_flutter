@@ -21,6 +21,17 @@ const Map<int, SamsungIapErrorKind> _sdkKinds = {
   -1015: SamsungIapErrorKind.accountNotSignedIn,
 };
 
+/// Samsung's server detail codes that name a specific kind. Samsung documents
+/// each under the -10xx code of that kind.
+const Map<int, SamsungIapErrorKind> _detailKinds = {
+  9201: SamsungIapErrorKind.productNotFound,
+  9202: SamsungIapErrorKind.productNotFound,
+  9207: SamsungIapErrorKind.productNotFound,
+  9224: SamsungIapErrorKind.alreadyOwned,
+  9134: SamsungIapErrorKind.notAvailableInCountry,
+  9259: SamsungIapErrorKind.notAvailableInCountry,
+};
+
 const Map<String, SamsungIapErrorKind> _pluginKinds = {
   'not_sent': SamsungIapErrorKind.busy,
   'not_initialized': SamsungIapErrorKind.notInitialized,
@@ -34,6 +45,11 @@ const Map<String, SamsungIapErrorKind> _pluginKinds = {
 ///
 /// `sdk` errors carry `ErrorVo` as a map in [PlatformException.details].
 /// Plugin errors carry a code from `_pluginKinds` and optional string details.
+///
+/// `ErrorVo` comes in two shapes. The payment screens return a -10xx code
+/// with the server code in the details, such as -1005 and `IS9207/...`.
+/// The service calls return the raw server code, such as 9201, and no
+/// details. Both become the same kind and [SamsungIapException.detailCode].
 SamsungIapException exceptionFromPlatform(PlatformException e) {
   if ((e.code, e.details) case (
     'sdk',
@@ -43,11 +59,19 @@ SamsungIapException exceptionFromPlatform(PlatformException e) {
       'dialogShown': final bool dialogShown,
     },
   )) {
+    // The SDK's own codes are 0, 1 (canceled) and -10xx.
+    final isServerCode = code > 1;
+    final detailCode = isServerCode ? code : parseDetailCode(details);
+    final kind = isServerCode
+        ? SamsungIapErrorKind.general
+        : _sdkKinds[code] ?? SamsungIapErrorKind.unknown;
     return SamsungIapException(
-      _sdkKinds[code] ?? SamsungIapErrorKind.unknown,
+      kind == SamsungIapErrorKind.general
+          ? _detailKinds[detailCode] ?? kind
+          : kind,
       message: e.message ?? '',
       code: code,
-      detailCode: parseDetailCode(details),
+      detailCode: detailCode,
       details: details,
       dialogShown: dialogShown,
     );
