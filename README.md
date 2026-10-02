@@ -42,7 +42,7 @@ Then run the device tests on the Samsung device. They use TEST mode, so sign in 
 license tester. Pass the product IDs to fetch as a comma-separated list. Without the define, the
 tests fetch every product of the app. Pass the IDs of products the tester already owns in
 `SAMSUNG_IAP_OWNED_IDS`, and the tests check that each one is in the owned list. Without it, the
-tests check only the products that are owned.
+tests check the fields of whatever the tester owns.
 
 ```sh
 cd samsung_iap_flutter/example

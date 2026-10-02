@@ -51,8 +51,8 @@ class SamsungIap {
     return await _platform.getProducts(productIds);
   }
 
-  /// Fetches the products the user owns, filtered to items, subscriptions or
-  /// [OwnedProductFilter.all].
+  /// Fetches the products the user owns. [filter] picks items, subscriptions
+  /// or both.
   ///
   /// Call it at every app launch and grant what it returns, so a purchase
   /// interrupted by process death is never lost. The dates on each
