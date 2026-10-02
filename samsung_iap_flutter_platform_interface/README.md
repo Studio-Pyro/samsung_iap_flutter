@@ -3,8 +3,9 @@
 [![style: very good analysis][very_good_analysis_badge]][very_good_analysis_link]
 
 The common platform interface of [`samsung_iap_flutter`][app_facing_link], an unofficial Flutter
-plugin for Samsung In-App Purchase on Galaxy Store. It holds the models, the enums,
-`SamsungIapException` and the `SamsungIapFlutterPlatform` base class.
+plugin for Samsung In-App Purchase on Galaxy Store. Studio Pyro maintains it, and it is not
+affiliated with or endorsed by Samsung. It holds the models, the enums, `SamsungIapException` and
+the `SamsungIapFlutterPlatform` base class.
 
 ## Usage
 

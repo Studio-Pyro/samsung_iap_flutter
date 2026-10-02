@@ -3,7 +3,8 @@
 [![style: very good analysis][very_good_analysis_badge]][very_good_analysis_link]
 
 The Android implementation of [`samsung_iap_flutter`][app_facing_link], an unofficial Flutter
-plugin for Samsung In-App Purchase on Galaxy Store. It bridges Samsung IAP SDK 6.5.2.
+plugin for Samsung In-App Purchase on Galaxy Store. It bridges Samsung IAP SDK 6.5.2. Studio Pyro
+maintains it, and it is not affiliated with or endorsed by Samsung.
 
 ## Usage
 

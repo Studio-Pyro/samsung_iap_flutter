@@ -6,8 +6,8 @@ This app calls every method of `samsung_iap_flutter` and shows each result and e
 ## Run it on a Galaxy device
 
 Samsung IAP needs a Samsung device with Galaxy Store, and an app that is registered in Seller
-Portal. On an emulator, the app runs, but every call that reaches Samsung fails with
-`storeUnavailable`.
+Portal. On an emulator, the app runs, but every call except `initialize` and
+`getGalaxyStoreStatus` fails with `storeUnavailable`.
 
 1. Sign in to Galaxy Store on the device with a license tester account. See
    [Set up Seller Portal][setup_link] in the plugin README.
