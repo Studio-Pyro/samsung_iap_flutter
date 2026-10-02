@@ -273,7 +273,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  /// The badge for an offer the user can get, or `null` for none.
   static String? _offer(PromotionPricing? pricing) => switch (pricing) {
     PromotionPricing.freeTrial => 'Free trial available',
     PromotionPricing.tieredPrice => 'Intro price',
