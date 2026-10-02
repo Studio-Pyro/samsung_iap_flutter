@@ -51,6 +51,17 @@ flutter test integration_test/device_test.dart \
   --dart-define=SAMSUNG_IAP_OWNED_IDS=<owned id>
 ```
 
+The purchase test is interactive and is skipped unless you pass `SAMSUNG_IAP_PURCHASE_ID`. Use an
+item the tester does not own yet: until consume is supported, buying an owned item fails with
+`alreadyOwned`. The test starts `getOwnedProducts` and then `purchase` at once, so it also checks that
+a purchase queued behind an inquiry is not refused. When Samsung's TEST-mode payment sheet opens,
+tap through it on the device. The test then checks that the new purchase is in the owned list.
+
+```sh
+flutter test integration_test/device_test.dart \
+  --dart-define=SAMSUNG_IAP_PURCHASE_ID=<unowned item id>
+```
+
 Some checks cannot be automated. Do them by hand in the example app, which starts in TEST mode:
 
 1. Disable Galaxy Store in the system settings.
@@ -58,6 +69,16 @@ Some checks cannot be automated. Do them by hand in the example app, which start
 3. Tap **Get products**. The app shows a `storeUnavailable` error at once, without a Samsung dialog.
 4. Tap **Get owned products**. The app shows the same error.
 5. Enable Galaxy Store again.
+6. Tap **Initialize**, **Get products** and then **Buy** on a product. Close the payment sheet
+   without paying. The app shows `Cancelled` and no error.
+7. Tap **Buy** on a product the tester already owns. The app shows an `alreadyOwned` error.
+
+Then check the R8 keep rules of the plugin. Run a minified release build, tap **Buy** on a product the
+tester does not own, and complete the payment. The app shows the purchase and order IDs.
+
+```sh
+flutter run --release
+```
 
 ## Pigeon bindings 🐦
 
