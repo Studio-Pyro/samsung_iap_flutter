@@ -141,9 +141,12 @@ class SamsungIap {
   ///
   /// Samsung shows its payment UI, and there is no timeout. Pick
   /// [prorationMode] by the direction of the change. An upgrade, to a tier
-  /// that costs the same or more, can use any mode. A downgrade must use
-  /// [ProrationMode.deferred]. The obfuscated IDs follow the same rules as in
-  /// [purchase].
+  /// that costs the same or more, can use any mode. For a downgrade, use
+  /// [ProrationMode.deferred], the only mode both of Samsung's guides allow.
+  /// With [ProrationMode.deferred], the new tier starts at the next renewal,
+  /// so keep granting the old tier until [getOwnedProducts] or your server
+  /// receipt shows the new one. The obfuscated IDs follow the same rules as
+  /// in [purchase].
   ///
   /// Throws a [SamsungIapException] with the same kinds as [purchase].
   /// Samsung reports a change it rejects as [SamsungIapErrorKind.general],
@@ -156,7 +159,7 @@ class SamsungIap {
   ///
   /// After a [SamsungIapErrorKind.network] or
   /// [SamsungIapErrorKind.purchaseResultUnknown] failure, call
-  /// [getOwnedProducts] before you retry: the change may have gone through.
+  /// [getOwnedProducts] before you retry. The change may have gone through.
   Future<SamsungPurchase> changeSubscriptionPlan({
     required String fromProductId,
     required String toProductId,

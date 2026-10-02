@@ -148,10 +148,13 @@ enum AckStatus {
 /// How Samsung bills a subscription plan change, and when it takes effect.
 ///
 /// An upgrade moves to a tier that costs more or the same. A downgrade moves
-/// to a tier that costs less, and Samsung always runs it as [deferred].
+/// to a tier that costs less. Samsung's guides disagree on whether a
+/// downgrade can be instant, and [deferred] is the only mode both allow for
+/// it. What Samsung does with an instant downgrade is not yet observed.
 enum ProrationMode {
   /// Changes the plan now. The value left on the current plan becomes time on
-  /// the new plan, so the renewal date moves.
+  /// the new plan, so the renewal date moves. Upgrades. Samsung's guides
+  /// disagree on downgrades.
   instantProratedDate,
 
   /// Changes the plan now and charges the price difference for the rest of
@@ -162,7 +165,9 @@ enum ProrationMode {
   /// Upgrades only.
   instantNoProration,
 
-  /// Changes the plan at the next renewal. Until then, the user cannot change
-  /// the plan again.
+  /// Changes the plan at the next renewal. Until then, the user keeps the
+  /// current tier, so keep granting it until `getOwnedProducts` or the server
+  /// receipt shows the new one. The user cannot change the plan again before
+  /// the renewal.
   deferred,
 }
