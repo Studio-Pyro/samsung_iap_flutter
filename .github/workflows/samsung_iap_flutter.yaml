@@ -35,6 +35,14 @@ jobs:
       flutter_version: 3.47.5
       working_directory: samsung_iap_flutter
 
+  pana:
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/pana.yml@v1
+    with:
+      # ponytail: 40 is the score before the first publish. Raise it to 160 once the
+      # packages this one depends on are on pub.dev and main has the pubspec URLs.
+      min_score: 40
+      working_directory: samsung_iap_flutter
+
   android:
     runs-on: ubuntu-latest
 
