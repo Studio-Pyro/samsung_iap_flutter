@@ -41,7 +41,7 @@ class _HomePageState extends State<HomePage> {
   List<OwnedProduct>? _owned;
   String? _purchase;
   bool _buying = false;
-  List<String>? _ackResults;
+  List<String> _ackResults = const [];
   String? _error;
 
   Future<void> _run(Future<void> Function() action) async {
@@ -94,12 +94,12 @@ class _HomePageState extends State<HomePage> {
 
   /// Runs [call], `consume` or `acknowledge`, on [product] and shows each
   /// result, then reloads the owned products to show the change.
-  Future<void> _settle(
+  Future<void> _ackAndReload(
     String action,
     Future<List<PurchaseAckResult>> Function(List<String>) call,
     OwnedProduct product,
   ) => _run(() async {
-    setState(() => _ackResults = null);
+    setState(() => _ackResults = const []);
     final results = await call([product.purchaseId]);
     setState(
       () => _ackResults = [
@@ -143,7 +143,7 @@ class _HomePageState extends State<HomePage> {
             child: const Text('Get owned products'),
           ),
           if (_purchase case final purchase?) Text(purchase),
-          for (final result in _ackResults ?? const <String>[]) Text(result),
+          for (final result in _ackResults) Text(result),
           if (_error case final error?)
             Text(
               error,
@@ -168,12 +168,13 @@ class _HomePageState extends State<HomePage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextButton(
-                    onPressed: () => _settle('Consume', _iap.consume, product),
+                    onPressed: () =>
+                        _ackAndReload('Consume', _iap.consume, product),
                     child: const Text('Consume'),
                   ),
                   TextButton(
                     onPressed: () =>
-                        _settle('Acknowledge', _iap.acknowledge, product),
+                        _ackAndReload('Acknowledge', _iap.acknowledge, product),
                     child: const Text('Acknowledge'),
                   ),
                 ],

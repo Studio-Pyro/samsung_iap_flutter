@@ -115,7 +115,7 @@ void main() {
   );
 
   test(
-    'consume makes an item repurchasable, and a batch fails per item',
+    'consume makes an item repurchasable, and a batch reports each item',
     () async {
       final first = await iap.purchase(consumeIdDefine);
 
@@ -126,11 +126,16 @@ void main() {
       ]);
 
       final second = await iap.purchase(consumeIdDefine);
-      final results = await iap.consume([second.purchaseId, _bogusPurchaseId]);
+      final results = await iap.consume([
+        second.purchaseId,
+        first.purchaseId,
+        _bogusPurchaseId,
+      ]);
 
       final statuses = {for (final r in results) r.purchaseId: r.status};
       expect(statuses, {
         second.purchaseId: AckStatus.success,
+        first.purchaseId: AckStatus.alreadyProcessed,
         _bogusPurchaseId: AckStatus.invalidPurchaseId,
       }, reason: '$results');
     },
