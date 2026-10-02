@@ -92,11 +92,11 @@ Some checks cannot be automated. Do them by hand in the example app, which start
 6. Tap **Initialize**, **Get products** and then **Buy** on a product. Close the payment sheet
    without paying. The app shows `Cancelled` and no error.
 7. Tap **Buy** on a product the tester already owns. The app shows an `alreadyOwned` error.
-8. Check a purchase that starts while the app is in the background. Nobody has verified this
-   case yet. Start the device purchase test, which calls `getOwnedProducts` and `purchase`
-   together, and press **Home** at once. Wait 30 seconds, then return to the app. If the payment
-   sheet never appears and the test never finishes, the purchase hangs, and every later call waits
-   behind it. Report the result.
+8. Check a purchase that starts while the app is in the background. Start the device purchase
+   test, which calls `getOwnedProducts` and `purchase` together, and press **Home** at once. Wait
+   30 seconds, then return to the app. The payment sheet appears and the test passes. If the test
+   fails with its 5-minute timeout instead, the purchase hung, and every later call waits behind
+   it.
 9. Tap **Get owned products**, then **Consume** on an owned item. The app shows
    `Consume <purchase ID>: success (0)`. Tap **Get products** and **Buy** on the same item. The
    payment sheet opens instead of an `alreadyOwned` error.

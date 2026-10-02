@@ -311,10 +311,7 @@ class SamsungIapFlutterPluginTest {
         }
 
     private fun answerPayment(purchase: PurchaseVo) {
-        doAnswer { invocation ->
-            invocation.getArgument<OnPaymentListener>(3).onPayment(errorVo(0), purchase)
-            true
-        }.`when`(helper).startPayment(anyString(), any(), any(), any())
+        answer(payment) { payment.callBack(it, errorVo(0), purchase) }
     }
 
     @Test
@@ -402,41 +399,27 @@ class SamsungIapFlutterPluginTest {
 
     @Test
     fun consumePurchasedItemsSendsTheIdsAndReturnsEachResult() = runTest {
-        doAnswer { invocation ->
-            invocation.getArgument<OnConsumePurchasedItemsListener>(1).onConsumePurchasedItems(
-                errorVo(0),
-                arrayListOf(
-                    ackVo(ConsumeVo::class.java, "a1b2c3", 0, "success"),
-                    ackVo(ConsumeVo::class.java, "bogus", 1, null),
-                    ackVo(ConsumeVo::class.java, null, 9, "service error"),
-                ),
-            )
-            true
-        }.`when`(helper).consumePurchasedItems(anyString(), any())
+        val results = arrayListOf(
+            ackVo(ConsumeVo::class.java, "a1b2c3", 0, "success"),
+            ackVo(ConsumeVo::class.java, "bogus", 1, null),
+            ackVo(ConsumeVo::class.java, null, 9, "service error"),
+        )
+        answer(consumeCall) { consumeCall.callBack(it, errorVo(0), results) }
 
-        val results = initializedPlugin().consumePurchasedItems("a1b2c3,bogus")
-
-        assertEquals(expectedAckResults, results)
+        assertEquals(expectedAckResults, initializedPlugin().consumePurchasedItems("a1b2c3,bogus"))
         verify(helper).consumePurchasedItems(eq("a1b2c3,bogus"), any())
     }
 
     @Test
     fun acknowledgePurchasesSendsTheIdsAndReturnsEachResult() = runTest {
-        doAnswer { invocation ->
-            invocation.getArgument<OnAcknowledgePurchasesListener>(1).onAcknowledgePurchases(
-                errorVo(0),
-                arrayListOf(
-                    ackVo(AcknowledgeVo::class.java, "a1b2c3", 0, "success"),
-                    ackVo(AcknowledgeVo::class.java, "bogus", 1, null),
-                    ackVo(AcknowledgeVo::class.java, null, 9, "service error"),
-                ),
-            )
-            true
-        }.`when`(helper).acknowledgePurchases(anyString(), any())
+        val results = arrayListOf(
+            ackVo(AcknowledgeVo::class.java, "a1b2c3", 0, "success"),
+            ackVo(AcknowledgeVo::class.java, "bogus", 1, null),
+            ackVo(AcknowledgeVo::class.java, null, 9, "service error"),
+        )
+        answer(acknowledgeCall) { acknowledgeCall.callBack(it, errorVo(0), results) }
 
-        val results = initializedPlugin().acknowledgePurchases("a1b2c3,bogus")
-
-        assertEquals(expectedAckResults, results)
+        assertEquals(expectedAckResults, initializedPlugin().acknowledgePurchases("a1b2c3,bogus"))
         verify(helper).acknowledgePurchases(eq("a1b2c3,bogus"), any())
     }
 
@@ -521,24 +504,25 @@ class SamsungIapFlutterPluginTest {
         ),
     )
 
-    /** Consume and acknowledge, which the SDK runs in the background like inquiries. */
-    private val acks = listOf(
-        GuardedCall(
-            "consumePurchasedItems",
-            OnConsumePurchasedItemsListener::class.java,
-            sent = true,
-            call = { it.consumePurchasedItems("a1b2c3") },
-            sdk = { it.consumePurchasedItems(anyString(), any()) },
-        ),
-        GuardedCall(
-            "acknowledgePurchases",
-            OnAcknowledgePurchasesListener::class.java,
-            sent = true,
-            call = { it.acknowledgePurchases("a1b2c3") },
-            sdk = { it.acknowledgePurchases(anyString(), any()) },
-            needsAcknowledgeStore = true,
-        ),
+    private val consumeCall = GuardedCall(
+        "consumePurchasedItems",
+        OnConsumePurchasedItemsListener::class.java,
+        sent = true,
+        call = { it.consumePurchasedItems("a1b2c3") },
+        sdk = { it.consumePurchasedItems(anyString(), any()) },
     )
+
+    private val acknowledgeCall = GuardedCall(
+        "acknowledgePurchases",
+        OnAcknowledgePurchasesListener::class.java,
+        sent = true,
+        call = { it.acknowledgePurchases("a1b2c3") },
+        sdk = { it.acknowledgePurchases(anyString(), any()) },
+        needsAcknowledgeStore = true,
+    )
+
+    /** Consume and acknowledge, which the SDK runs in the background like inquiries. */
+    private val acks = listOf(consumeCall, acknowledgeCall)
 
     private val payment = GuardedCall(
         "startPayment",
