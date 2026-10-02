@@ -131,9 +131,10 @@ class SamsungIap {
   /// receipt shows the new one. The obfuscated IDs follow the same rules as
   /// in [purchase].
   ///
-  /// Throws a [SamsungIapException] with the same kinds as [purchase]. See
-  /// [SamsungIapErrorKind] for what to do on each. Samsung reports a change
-  /// it rejects as [SamsungIapErrorKind.general], and
+  /// Throws [SamsungIapErrorKind.invalidArgument] for an empty product ID, or
+  /// an obfuscated ID that breaks the rules of [purchase]. See
+  /// [SamsungIapErrorKind] for the other kinds. Samsung reports a change it
+  /// rejects as [SamsungIapErrorKind.general], and
   /// [SamsungIapException.detailCode] tells why:
   ///
   /// - 1005: the subscription [fromProductId] does not exist.
