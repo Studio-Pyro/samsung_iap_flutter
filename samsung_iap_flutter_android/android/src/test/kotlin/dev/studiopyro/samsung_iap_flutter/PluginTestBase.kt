@@ -35,11 +35,11 @@ abstract class PluginTestBase {
     protected fun initializedPlugin() =
         attachedPlugin().apply { initialize(PlatformOperationMode.TEST, showErrorDialog = false) }
 
-    protected fun errorVo(code: Int): ErrorVo = mock(ErrorVo::class.java).also {
+    protected fun errorVo(code: Int, dialogShown: Boolean = true): ErrorVo = mock(ErrorVo::class.java).also {
         `when`(it.errorCode).thenReturn(code)
         `when`(it.errorString).thenReturn("Product does not exist.")
         `when`(it.errorDetailsString).thenReturn("IS9207/6050/x")
-        `when`(it.isShowDialog).thenReturn(true)
+        `when`(it.isShowDialog).thenReturn(dialogShown)
     }
 
     /** Stubs [guarded] to send, then hand its listener to [reply]. */
