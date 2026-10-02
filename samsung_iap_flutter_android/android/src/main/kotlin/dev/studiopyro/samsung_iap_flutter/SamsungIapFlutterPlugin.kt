@@ -216,6 +216,6 @@ private fun SubscriptionPriceChangeVo.toPlatform() = PlatformSubscriptionPriceCh
     originalLocalPriceString = originalLocalPriceString.orEmpty(),
     newLocalPrice = newLocalPrice,
     newLocalPriceString = newLocalPriceString.orEmpty(),
-    isConsented = isConsented(),
+    isConsented = isConsented() == true,
     priceChangeMode = priceChangeMode?.name.orEmpty(),
 )

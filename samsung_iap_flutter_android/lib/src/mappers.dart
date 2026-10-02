@@ -52,8 +52,7 @@ SubscriptionPriceChange? _priceChange(PlatformSubscriptionPriceChange? c) =>
     ? null
     : SubscriptionPriceChange(
         mode: parsePriceChangeMode(c.priceChangeMode),
-        // The SDK itself reads a missing flag as "N".
-        consented: c.isConsented ?? false,
+        consented: c.isConsented,
         startDate: parseLocalDateTime(c.startDate),
         originalPrice: finiteOrNull(c.originalLocalPrice),
         originalFormattedPrice: c.originalLocalPriceString,

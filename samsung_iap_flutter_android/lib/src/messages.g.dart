@@ -298,7 +298,7 @@ class PlatformSubscriptionPriceChange {
     required this.originalLocalPriceString,
     required this.newLocalPrice,
     required this.newLocalPriceString,
-    this.isConsented,
+    required this.isConsented,
     required this.priceChangeMode,
   });
 
@@ -316,7 +316,7 @@ class PlatformSubscriptionPriceChange {
 
   String newLocalPriceString;
 
-  bool? isConsented;
+  bool isConsented;
 
   /// The SDK enum constant's name, or `""`.
   String priceChangeMode;
@@ -349,7 +349,7 @@ class PlatformSubscriptionPriceChange {
       originalLocalPriceString: result[4]! as String,
       newLocalPrice: result[5]! as double,
       newLocalPriceString: result[6]! as String,
-      isConsented: result[7] as bool?,
+      isConsented: result[7]! as bool,
       priceChangeMode: result[8]! as String,
     );
   }

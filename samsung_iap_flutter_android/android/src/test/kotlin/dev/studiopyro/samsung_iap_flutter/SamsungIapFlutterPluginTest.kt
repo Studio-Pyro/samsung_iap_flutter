@@ -244,7 +244,7 @@ class SamsungIapFlutterPluginTest {
         assertEquals(null, plain.subscriptionPriceChange)
         val change = broken.subscriptionPriceChange!!
         assertEquals("", change.priceChangeMode)
-        assertEquals(null, change.isConsented)
+        assertEquals(false, change.isConsented, "a null flag arrives as false")
         assertEquals("", change.startDate)
     }
 

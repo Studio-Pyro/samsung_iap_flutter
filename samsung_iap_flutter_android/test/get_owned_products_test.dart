@@ -10,7 +10,7 @@ PlatformSubscriptionPriceChange priceChangeWire({
   String startDate = '2026-06-01 00:00:00',
   double originalLocalPrice = 7.99,
   double newLocalPrice = 8.99,
-  bool? isConsented = true,
+  bool isConsented = true,
   String priceChangeMode = 'PRICE_INCREASE_USER_AGREEMENT_REQUIRED',
 }) => PlatformSubscriptionPriceChange(
   subscriptionDurationUnit: 'MONTH',
@@ -136,16 +136,17 @@ void main() {
     expect(owned.obfuscatedProfileId, isNull);
   });
 
-  test('maps the consent flag, reading a missing one as no', () async {
-    final flags = <bool?, bool>{true: true, false: false, null: false};
-    for (final MapEntry(key: wire, value: consented) in flags.entries) {
+  test('maps the consent flag', () async {
+    for (final consented in [true, false]) {
       answerOwned([
-        ownedWire(subscriptionPriceChange: priceChangeWire(isConsented: wire)),
+        ownedWire(
+          subscriptionPriceChange: priceChangeWire(isConsented: consented),
+        ),
       ]);
 
       final owned = (await plugin.getOwnedProducts(.subscription)).single;
 
-      expect(owned.priceChange?.consented, consented, reason: '$wire');
+      expect(owned.priceChange?.consented, consented, reason: '$consented');
     }
   });
 

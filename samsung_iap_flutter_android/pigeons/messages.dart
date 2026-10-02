@@ -89,7 +89,7 @@ class PlatformSubscriptionPriceChange {
   String originalLocalPriceString;
   double newLocalPrice;
   String newLocalPriceString;
-  bool? isConsented;
+  bool isConsented;
 
   /// The SDK enum constant's name, or `""`.
   String priceChangeMode;

@@ -376,7 +376,7 @@ data class PlatformSubscriptionPriceChange (
   val originalLocalPriceString: String,
   val newLocalPrice: Double,
   val newLocalPriceString: String,
-  val isConsented: Boolean? = null,
+  val isConsented: Boolean,
   /** The SDK enum constant's name, or `""`. */
   val priceChangeMode: String
 )
@@ -390,7 +390,7 @@ data class PlatformSubscriptionPriceChange (
       val originalLocalPriceString = pigeonVar_list[4] as String
       val newLocalPrice = pigeonVar_list[5] as Double
       val newLocalPriceString = pigeonVar_list[6] as String
-      val isConsented = pigeonVar_list[7] as Boolean?
+      val isConsented = pigeonVar_list[7] as Boolean
       val priceChangeMode = pigeonVar_list[8] as String
       return PlatformSubscriptionPriceChange(subscriptionDurationUnit, subscriptionDurationMultiplier, startDate, originalLocalPrice, originalLocalPriceString, newLocalPrice, newLocalPriceString, isConsented, priceChangeMode)
     }
