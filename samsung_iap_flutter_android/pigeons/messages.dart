@@ -173,6 +173,19 @@ class PlatformPurchase {
   String json;
 }
 
+/// `ConsumeVo` and `AcknowledgeVo`, which share their fields.
+class PlatformAckResult {
+  PlatformAckResult({
+    required this.purchaseId,
+    required this.statusCode,
+    required this.statusString,
+  });
+
+  String purchaseId;
+  int statusCode;
+  String statusString;
+}
+
 @HostApi()
 abstract class SamsungIapHostApi {
   void initialize(PlatformOperationMode mode, bool showErrorDialog);
@@ -193,4 +206,13 @@ abstract class SamsungIapHostApi {
     String? obfuscatedAccountId,
     String? obfuscatedProfileId,
   );
+
+  /// [purchaseIds] is comma-separated and not empty.
+  @async
+  List<PlatformAckResult> consumePurchasedItems(String purchaseIds);
+
+  /// [purchaseIds] is comma-separated and not empty. Fails with
+  /// `store_update_required` on a Galaxy Store that cannot acknowledge.
+  @async
+  List<PlatformAckResult> acknowledgePurchases(String purchaseIds);
 }

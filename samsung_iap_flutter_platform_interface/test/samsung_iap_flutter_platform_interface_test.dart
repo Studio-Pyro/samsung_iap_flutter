@@ -149,6 +149,8 @@ void main() {
         throwsUnimplementedError,
       );
       expect(() => platform.purchase('coins_100'), throwsUnimplementedError);
+      expect(() => platform.consume(['a1b2c3']), throwsUnimplementedError);
+      expect(() => platform.acknowledge(['a1b2c3']), throwsUnimplementedError);
     });
 
     test('accepts an instance that extends the base class', () {
@@ -378,6 +380,55 @@ void main() {
         _purchase().toString(),
         'SamsungPurchase(coins_100, a1b2c3, S20260101KRA1234567)',
       );
+    });
+
+    test('ack results differing in any one field are not equal', () {
+      PurchaseAckResult result({
+        String purchaseId = 'a1b2c3',
+        AckStatus status = AckStatus.success,
+        int statusCode = 0,
+        String message = 'success',
+      }) => PurchaseAckResult(
+        purchaseId: purchaseId,
+        status: status,
+        statusCode: statusCode,
+        message: message,
+      );
+
+      expect(result(), result());
+      expect(result().hashCode, result().hashCode);
+      final variants = [
+        result(purchaseId: 'd4e5f6'),
+        result(status: AckStatus.unknown),
+        result(statusCode: 10),
+        result(message: 'other'),
+      ];
+      for (final (index, variant) in variants.indexed) {
+        expect(variant, isNot(result()), reason: 'variant $index');
+      }
+      expect(
+        result(status: AckStatus.alreadyProcessed, statusCode: 4).toString(),
+        'PurchaseAckResult(a1b2c3, alreadyProcessed, 4)',
+      );
+    });
+
+    test('an ack result is processed on success or an earlier success', () {
+      const processed = {AckStatus.success, AckStatus.alreadyProcessed};
+
+      for (final status in AckStatus.values) {
+        final result = PurchaseAckResult(
+          purchaseId: 'a1b2c3',
+          status: status,
+          statusCode: 0,
+          message: '',
+        );
+
+        expect(
+          result.isProcessed,
+          processed.contains(status),
+          reason: status.name,
+        );
+      }
     });
 
     test('owned products and price changes describe themselves', () {

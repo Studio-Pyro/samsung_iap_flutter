@@ -1,35 +1,38 @@
 package dev.studiopyro.samsung_iap_flutter
 
 import android.content.Context
+import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
+import android.util.Log
 import com.samsung.android.sdk.iap.lib.constants.HelperDefine.AcknowledgedStatus
 import com.samsung.android.sdk.iap.lib.constants.HelperDefine.MinorStatus
 import com.samsung.android.sdk.iap.lib.constants.HelperDefine.OperationMode
 import com.samsung.android.sdk.iap.lib.constants.HelperDefine.PriceChangeMode
-import com.samsung.android.sdk.iap.lib.helper.IapHelper
 import com.samsung.android.sdk.iap.lib.listener.OnGetOwnedListListener
 import com.samsung.android.sdk.iap.lib.listener.OnGetProductsDetailsListener
-import com.samsung.android.sdk.iap.lib.listener.OnPaymentListener
+import com.samsung.android.sdk.iap.lib.vo.AcknowledgeVo
+import com.samsung.android.sdk.iap.lib.vo.ConsumeVo
 import com.samsung.android.sdk.iap.lib.vo.ErrorVo
 import com.samsung.android.sdk.iap.lib.vo.OwnedProductVo
 import com.samsung.android.sdk.iap.lib.vo.ProductVo
 import com.samsung.android.sdk.iap.lib.vo.PurchaseVo
 import com.samsung.android.sdk.iap.lib.vo.SubscriptionPriceChangeVo
-import io.flutter.embedding.engine.plugins.FlutterPlugin
-import io.flutter.plugin.common.BinaryMessenger
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
 import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.eq
 import org.mockito.ArgumentMatchers.isNull
 import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.mockStatic
+import org.mockito.Mockito.mockingDetails
 import org.mockito.Mockito.never
 import org.mockito.Mockito.reset
 import org.mockito.Mockito.verify
@@ -38,41 +41,16 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class SamsungIapFlutterPluginTest {
-    private val helper = mock(IapHelper::class.java)
-    private var store = PlatformStoreStatus.AVAILABLE
-
-    private fun attachedPlugin(
-        helperFactory: (Context) -> IapHelper = { helper },
-    ): SamsungIapFlutterPlugin {
-        val binding = mock(FlutterPlugin.FlutterPluginBinding::class.java)
-        `when`(binding.applicationContext).thenReturn(mock(Context::class.java))
-        `when`(binding.binaryMessenger).thenReturn(mock(BinaryMessenger::class.java))
-        return SamsungIapFlutterPlugin(helperFactory = helperFactory, storeStatus = { store })
-            .apply { onAttachedToEngine(binding) }
-    }
-
-    private fun initializedPlugin() =
-        attachedPlugin().apply { initialize(PlatformOperationMode.TEST, showErrorDialog = false) }
-
+class SamsungIapFlutterPluginTest : PluginTestBase() {
     private fun answerProducts(vararg replies: Pair<ErrorVo, ArrayList<ProductVo>>) {
         doAnswer { invocation ->
             val listener = invocation.getArgument<OnGetProductsDetailsListener>(1)
             replies.forEach { (error, products) -> listener.onGetProducts(error, products) }
             null
         }.`when`(helper).getProductsDetails(anyString(), any())
-    }
-
-    private fun errorVo(code: Int): ErrorVo = mock(ErrorVo::class.java).also {
-        `when`(it.errorCode).thenReturn(code)
-        `when`(it.errorString).thenReturn("Product does not exist.")
-        `when`(it.errorDetailsString).thenReturn("IS9207/6050/x")
-        `when`(it.isShowDialog).thenReturn(true)
     }
 
     private fun productVo(id: String): ProductVo = mock(ProductVo::class.java).also {
@@ -298,10 +276,7 @@ class SamsungIapFlutterPluginTest {
         }
 
     private fun answerPayment(purchase: PurchaseVo) {
-        doAnswer { invocation ->
-            invocation.getArgument<OnPaymentListener>(3).onPayment(errorVo(0), purchase)
-            true
-        }.`when`(helper).startPayment(anyString(), any(), any(), any())
+        answer(paymentCall) { paymentCall.callBack(it, errorVo(0), purchase) }
     }
 
     @Test
@@ -351,7 +326,7 @@ class SamsungIapFlutterPluginTest {
     @Test
     fun startPaymentReportsASuccessWithoutAPurchaseAsResultUnknown() = runTest {
         for (error in listOf(errorVo(0), null)) {
-            answer(payment) { payment.callBack(it, error, null) }
+            answer(paymentCall) { paymentCall.callBack(it, error, null) }
 
             val failure = assertFailsWith<FlutterError> {
                 initializedPlugin().startPayment("coins_100", null, null)
@@ -374,166 +349,103 @@ class SamsungIapFlutterPluginTest {
         assertEquals("startPayment", error.details)
     }
 
-    /** An SDK call the plugin guards. The SDK takes its listener last. */
-    private class GuardedCall(
-        val name: String,
-        val listener: Class<*>,
-        /** What the SDK method returns once it has sent the request. */
-        val sent: Any?,
-        val call: suspend (SamsungIapFlutterPlugin) -> Any?,
-        /** Calls the SDK method with matchers, for stubbing and verifying. */
-        val sdk: (IapHelper) -> Unit,
-    )
+    private fun <T : ConsumeVo> ackVo(type: Class<T>, purchaseId: String?, statusCode: Int, statusString: String?): T =
+        mock(type).also {
+            `when`(it.purchaseId).thenReturn(purchaseId)
+            `when`(it.statusCode).thenReturn(statusCode)
+            `when`(it.statusString).thenReturn(statusString)
+        }
 
-    private val inquiries = listOf(
-        GuardedCall(
-            "getProductsDetails",
-            OnGetProductsDetailsListener::class.java,
-            sent = null,
-            call = { it.getProductsDetails("") },
-            sdk = { it.getProductsDetails(anyString(), any()) },
-        ),
-        GuardedCall(
-            "getOwnedList",
-            OnGetOwnedListListener::class.java,
-            sent = true,
-            call = { it.getOwnedList(PlatformOwnedProductFilter.ALL) },
-            sdk = { it.getOwnedList(anyString(), any()) },
-        ),
-    )
-
-    private val payment = GuardedCall(
-        "startPayment",
-        OnPaymentListener::class.java,
-        sent = true,
-        call = { it.startPayment("coins_100", null, null) },
-        sdk = { it.startPayment(anyString(), any(), any(), any()) },
-    )
-
-    /** Stubs [guarded] to send, then hand its listener to [reply]. */
-    private fun answer(guarded: GuardedCall, reply: (listener: Any) -> Unit = {}) {
-        doAnswer { reply(it.arguments.last()); guarded.sent }.`when`(helper).let(guarded.sdk)
-    }
-
-    /** Calls the listener's only method, the way the SDK does. */
-    private fun GuardedCall.callBack(listener: Any, error: ErrorVo?, value: Any?) {
-        this.listener.methods.single().invoke(listener, error, value)
-    }
-
-    /** Fails the test unless [guarded] finishes without advancing virtual time. */
-    private suspend fun TestScope.failsAtOnce(guarded: GuardedCall, error: ErrorVo?) {
-        var listener: Any? = null
-        answer(guarded) { listener = it }
-        val result = async { runCatching { guarded.call(initializedPlugin()) } }
-        runCurrent()
-
-        guarded.callBack(listener!!, error, null)
-        runCurrent()
-
-        assertTrue(result.isCompleted, "failed without waiting for the timeout")
-        assertTrue(result.await().isFailure)
-    }
-
-    private val guards: Map<String, suspend TestScope.(GuardedCall) -> Unit> = mapOf(
-        "fails with not_initialized before initialize" to { guarded ->
-            val error = assertFailsWith<FlutterError> { guarded.call(attachedPlugin()) }
-
-            assertEquals("not_initialized", error.code)
-            verify(helper, never()).let(guarded.sdk)
-        },
-        "fails with not_initialized after a failed initialize" to { guarded ->
-            val plugin = attachedPlugin(helperFactory = { throw IllegalStateException("no SDK") })
-            assertFailsWith<IllegalStateException> {
-                plugin.initialize(PlatformOperationMode.TEST, showErrorDialog = true)
-            }
-
-            val error = assertFailsWith<FlutterError> { guarded.call(plugin) }
-
-            assertEquals("not_initialized", error.code)
-        },
-        "fails with store_unavailable before the SDK" to { guarded ->
-            store = PlatformStoreStatus.INVALID
-
-            val error = assertFailsWith<FlutterError> { guarded.call(initializedPlugin()) }
-
-            assertEquals("store_unavailable", error.code)
-            assertEquals("invalid", error.details)
-            verify(helper, never()).let(guarded.sdk)
-        },
-        "throws the SDK error" to { guarded ->
-            answer(guarded) { guarded.callBack(it, errorVo(-1005), null) }
-
-            val error = assertFailsWith<FlutterError> { guarded.call(initializedPlugin()) }
-
-            assertEquals("sdk", error.code)
-            assertEquals("Product does not exist.", error.message)
-            assertEquals(
-                mapOf("errorCode" to -1005, "errorDetails" to "IS9207/6050/x", "dialogShown" to true),
-                error.details,
-            )
-        },
-        "fails at once on a success with a null value" to { guarded ->
-            failsAtOnce(guarded, errorVo(0))
-        },
-        "fails at once on a null error and value" to { guarded ->
-            failsAtOnce(guarded, null)
-        },
+    private val expectedAckResults = listOf(
+        PlatformAckResult(purchaseId = "a1b2c3", statusCode = 0, statusString = "success"),
+        PlatformAckResult(purchaseId = "bogus", statusCode = 1, statusString = ""),
+        PlatformAckResult(purchaseId = "", statusCode = 9, statusString = "service error"),
     )
 
     @TestFactory
-    fun guardedSdkCalls() = (inquiries + payment).flatMap { guarded ->
-        guards.map { (case, check) ->
-            DynamicTest.dynamicTest("${guarded.name} $case") {
-                reset(helper)
-                store = PlatformStoreStatus.AVAILABLE
-                runTest { check(guarded) }
+    fun ackCallsSendTheIdsAndReturnEachResult() = listOf(
+        Triple(consumeCall, ConsumeVo::class.java, SamsungIapFlutterPlugin::consumePurchasedItems),
+        Triple(acknowledgeCall, AcknowledgeVo::class.java, SamsungIapFlutterPlugin::acknowledgePurchases),
+    ).map { (ack, vo, send) ->
+        DynamicTest.dynamicTest(ack.name) {
+            reset(helper)
+            runTest {
+                val results = arrayListOf(
+                    ackVo(vo, "a1b2c3", 0, "success"),
+                    ackVo(vo, "bogus", 1, null),
+                    ackVo(vo, null, 9, "service error"),
+                )
+                answer(ack) { ack.callBack(it, errorVo(0), results) }
+
+                assertEquals(expectedAckResults, send(initializedPlugin(), "a1b2c3,bogus"))
+                val sent = mockingDetails(helper).invocations.single { it.method.name == ack.name }
+                assertEquals("a1b2c3,bogus", sent.arguments.first())
             }
         }
     }
 
     @TestFactory
-    fun inquiriesTimeOutAfter30Seconds() = inquiries.map { inquiry ->
-        DynamicTest.dynamicTest(inquiry.name) {
+    fun ackCallsMapAFalseReturnToNotSent() = ackCalls.map { ack ->
+        DynamicTest.dynamicTest(ack.name) {
             reset(helper)
             runTest {
-                answer(inquiry)
-                val plugin = initializedPlugin()
+                doAnswer { false }.`when`(helper).let(ack.sdk)
 
-                val result = async { runCatching { inquiry.call(plugin) } }
-                advanceTimeBy(INQUIRY_TIMEOUT - 1.milliseconds)
-                runCurrent()
-                assertFalse(result.isCompleted, "still waiting just before 30s")
-                advanceTimeBy(1.milliseconds)
-                runCurrent()
-                assertTrue(result.isCompleted, "timed out at 30s")
+                val error = assertFailsWith<FlutterError> { ack.call(initializedPlugin()) }
 
-                val error = result.await().exceptionOrNull() as FlutterError
-                assertEquals("timeout", error.code)
-                assertEquals(inquiry.name, error.details)
+                assertEquals("not_sent" to ack.name, error.code to error.details)
             }
         }
     }
 
     @Test
-    fun startPaymentStillWaitsAfter24Hours() = runTest {
-        answer(payment)
-        val plugin = initializedPlugin()
+    fun onlyAcknowledgeChecksTheGalaxyStoreVersionLikeTheSdk() = runTest {
+        mockStatic(Log::class.java).use {
+            for ((versionCode, sent) in mapOf(459_000_999 to false, 459_001_000 to true, 500_000_000 to true)) {
+                reset(helper)
+                doAnswer { true }.`when`(helper).acknowledgePurchases(anyString(), any())
+                doAnswer { true }.`when`(helper).consumePurchasedItems(anyString(), any())
+                val packageInfo = mock(PackageInfo::class.java).also {
+                    @Suppress("DEPRECATION")
+                    it.versionCode = versionCode
+                }
+                val packageManager = mock(PackageManager::class.java)
+                `when`(packageManager.getPackageInfo(eq("com.sec.android.app.samsungapps"), anyInt()))
+                    .thenReturn(packageInfo)
+                val context = mock(Context::class.java)
+                `when`(context.packageManager).thenReturn(packageManager)
+                val plugin = SamsungIapFlutterPlugin(helperFactory = { helper }, storeStatus = { store }).apply {
+                    onAttachedToEngine(binding(context))
+                    initialize(PlatformOperationMode.TEST, showErrorDialog = false)
+                }
 
-        val result = async { plugin.startPayment("coins_100", null, null) }
-        advanceTimeBy(24.hours)
-        runCurrent()
+                val consumed = async { runCatching { plugin.consumePurchasedItems("a1b2c3") } }
+                runCurrent()
+                verify(helper).consumePurchasedItems(eq("a1b2c3"), any())
+                consumed.cancel()
 
-        assertFalse(result.isCompleted, "still waiting after 24h")
-        result.cancel()
+                val result = async { runCatching { plugin.acknowledgePurchases("a1b2c3") } }
+                runCurrent()
+
+                if (sent) {
+                    verify(helper).acknowledgePurchases(eq("a1b2c3"), any())
+                    result.cancel()
+                } else {
+                    val error = result.await().exceptionOrNull() as FlutterError
+                    assertEquals("store_update_required", error.code, "at version $versionCode")
+                    verify(helper, never()).acknowledgePurchases(anyString(), any())
+                }
+            }
+        }
     }
 
     @Test
     fun awaitSdkIgnoresACallbackAfterTheTimeout() = runTest {
         var done: Done<String>? = null
         val result = async {
-            runCatching { awaitSdk("getOwnedList", INQUIRY_TIMEOUT) { done = it; true } }
+            runCatching { awaitSdk("getOwnedList", BACKGROUND_CALL_TIMEOUT) { done = it; true } }
         }
-        advanceTimeBy(INQUIRY_TIMEOUT)
+        advanceTimeBy(BACKGROUND_CALL_TIMEOUT)
         runCurrent()
         assertEquals("timeout", (result.await().exceptionOrNull() as FlutterError).code)
 

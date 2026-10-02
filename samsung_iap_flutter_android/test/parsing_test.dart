@@ -113,6 +113,25 @@ void main() {
     }
   });
 
+  test('parseAckStatus', () {
+    final cases = {
+      0: AckStatus.success,
+      1: AckStatus.invalidPurchaseId,
+      2: AckStatus.failedOrder,
+      3: AckStatus.invalidProductType,
+      4: AckStatus.alreadyProcessed,
+      5: AckStatus.unauthorized,
+      9: AckStatus.serviceError,
+      6: AckStatus.unknown,
+      8: AckStatus.unknown,
+      10: AckStatus.unknown,
+      -1: AckStatus.unknown,
+    };
+    for (final MapEntry(key: input, value: expected) in cases.entries) {
+      expect(parseAckStatus(input), expected, reason: '$input');
+    }
+  });
+
   test('parseProductType', () {
     final cases = {
       'item': SamsungProductType.item,

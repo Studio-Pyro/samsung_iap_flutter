@@ -52,15 +52,40 @@ flutter test integration_test/device_test.dart \
 ```
 
 The purchase test is interactive and is skipped unless you pass `SAMSUNG_IAP_PURCHASE_ID`. Use an
-item the tester does not own yet. Until consume is supported, buying an owned item fails with
-`alreadyOwned`. The test starts `getOwnedProducts` and then `purchase` at once, so it also checks that
-a purchase queued behind an inquiry is not refused. When Samsung's TEST-mode payment sheet opens,
-tap through it on the device. The test then checks that the new purchase is in the owned list.
+item the tester does not own yet, because buying an owned item fails with `alreadyOwned`. The test
+starts `getOwnedProducts` and then `purchase` at once, so it also checks that a purchase queued
+behind an inquiry is not refused. When Samsung's TEST-mode payment sheet opens, tap through it on
+the device. The test then checks that the new purchase is in the owned list.
 
 ```sh
 flutter test integration_test/device_test.dart \
   --dart-define=SAMSUNG_IAP_PURCHASE_ID=<unowned item id>
 ```
+
+The consume and acknowledge tests are interactive too, and each needs its own item that the tester
+does not own:
+
+- With `SAMSUNG_IAP_CONSUME_ID`, the test buys the item, consumes it, and buys it again to show it
+  can be bought again. It then consumes the second and first purchases together, and expects
+  `success` and `alreadyProcessed`. Last, it consumes the second purchase with a bogus purchase ID,
+  and expects `alreadyProcessed` and `invalidPurchaseId`. Tap through two payment sheets.
+
+  The two batch checks are open acceptance items. Samsung documents both a per-purchase
+  `invalidPurchaseId` and a whole-call error with detail code 9226 for a bad ID. If the last call
+  fails with `general` and `detailCode: 9226`, Samsung fails the whole batch. Change the test and
+  the package README to match.
+- With `SAMSUNG_IAP_ACKNOWLEDGE_ID`, the test buys the item and checks that it is owned and
+  `notAcknowledged`. It then acknowledges it, checks that it is `acknowledged`, and checks that a
+  second acknowledge reports `alreadyProcessed`. Tap through one payment sheet.
+
+```sh
+flutter test integration_test/device_test.dart \
+  --dart-define=SAMSUNG_IAP_CONSUME_ID=<unowned item id> \
+  --dart-define=SAMSUNG_IAP_ACKNOWLEDGE_ID=<another unowned item id>
+```
+
+In TEST mode, Samsung lets the tester buy an acknowledged item again after 10 minutes. Wait that
+long before you run the acknowledge test again with the same item.
 
 Some checks cannot be automated. Do them by hand in the example app, which starts in TEST mode:
 
@@ -72,11 +97,17 @@ Some checks cannot be automated. Do them by hand in the example app, which start
 6. Tap **Initialize**, **Get products** and then **Buy** on a product. Close the payment sheet
    without paying. The app shows `Cancelled` and no error.
 7. Tap **Buy** on a product the tester already owns. The app shows an `alreadyOwned` error.
-8. Check a purchase that starts while the app is in the background. Nobody has verified this
-   case yet. Start the device purchase test, which calls `getOwnedProducts` and `purchase`
-   together, and press **Home** at once. Wait 30 seconds, then return to the app. If the payment
-   sheet never appears and the test never finishes, the purchase hangs, and every later call waits
-   behind it. Report the result.
+8. Check a purchase that starts while the app is in the background. Start the device purchase
+   test, which calls `getOwnedProducts` and `purchase` together, and press **Home** at once. Wait
+   30 seconds, then return to the app. The payment sheet appears and the test passes. If the test
+   fails with its 5-minute timeout instead, the purchase hung, and every later call waits behind
+   it.
+9. Tap **Get owned products**, then **Consume** on an owned item. The app shows
+   `Consume <purchase ID>: success (0)`. Tap **Get products** and **Buy** on the same item. The
+   payment sheet opens instead of an `alreadyOwned` error.
+10. Tap **Acknowledge** on an owned subscription or item. The app shows
+    `Acknowledge <purchase ID>: success (0)`, and the reloaded row shows `acknowledged`. Tap
+    **Acknowledge** again. The app shows `alreadyProcessed (4)`.
 
 Then check the R8 keep rules of the plugin. Run a minified release build, tap **Buy** on a product the
 tester does not own, and complete the payment. The app shows the purchase and order IDs.

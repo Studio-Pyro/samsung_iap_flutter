@@ -116,3 +116,31 @@ enum MinorStatus {
   /// A status this version of the plugin does not know.
   unknown,
 }
+
+/// Samsung's outcome for one purchase of a consume or acknowledge call.
+enum AckStatus {
+  /// The purchase is now consumed or acknowledged.
+  success,
+
+  /// Samsung knows no purchase with this ID.
+  invalidPurchaseId,
+
+  /// The order behind the purchase failed.
+  failedOrder,
+
+  /// The product's type does not allow this call.
+  invalidProductType,
+
+  /// An earlier call already consumed or acknowledged the purchase.
+  alreadyProcessed,
+
+  /// Samsung does not let the signed-in user change this purchase.
+  unauthorized,
+
+  /// Samsung hit an unexpected error. Safe to retry.
+  serviceError,
+
+  /// A status this version of the plugin does not know. See
+  /// `PurchaseAckResult.statusCode`.
+  unknown,
+}

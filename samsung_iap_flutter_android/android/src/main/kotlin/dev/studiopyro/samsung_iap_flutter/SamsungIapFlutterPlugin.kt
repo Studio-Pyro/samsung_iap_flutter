@@ -4,6 +4,8 @@ import android.content.Context
 import com.samsung.android.sdk.iap.lib.constants.HelperDefine
 import com.samsung.android.sdk.iap.lib.helper.IapHelper
 import com.samsung.android.sdk.iap.lib.util.HelperUtil
+import com.samsung.android.sdk.iap.lib.vo.AcknowledgeVo
+import com.samsung.android.sdk.iap.lib.vo.ConsumeVo
 import com.samsung.android.sdk.iap.lib.vo.ErrorVo
 import com.samsung.android.sdk.iap.lib.vo.OwnedProductVo
 import com.samsung.android.sdk.iap.lib.vo.ProductVo
@@ -17,12 +19,13 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
 
-/** How long an inquiry waits for Samsung. Payments wait indefinitely. */
-internal val INQUIRY_TIMEOUT = 30.seconds
+/** How long a call without Samsung UI waits for Samsung. Payments wait indefinitely. */
+internal val BACKGROUND_CALL_TIMEOUT = 30.seconds
 
 class SamsungIapFlutterPlugin(
     private val helperFactory: (Context) -> IapHelper = IapHelper::getInstance,
     private val storeStatus: (Context) -> PlatformStoreStatus = ::galaxyStoreStatus,
+    private val acknowledgeAvailable: (Context) -> Boolean = HelperUtil::isAcknowledgeAvailable,
 ) : FlutterPlugin, SamsungIapHostApi {
     private lateinit var context: Context
     private var helper: IapHelper? = null
@@ -49,7 +52,7 @@ class SamsungIapFlutterPlugin(
     override suspend fun getProductsDetails(productIds: String): List<PlatformProduct> {
         val helper = requireHelper()
         requireStore()
-        return awaitSdk("getProductsDetails", INQUIRY_TIMEOUT) { done ->
+        return awaitSdk("getProductsDetails", BACKGROUND_CALL_TIMEOUT) { done ->
             helper.getProductsDetails(productIds) { error: ErrorVo?, products: ArrayList<ProductVo>? ->
                 done(error) { products!!.map { it.toPlatform() } }
             }
@@ -60,7 +63,7 @@ class SamsungIapFlutterPlugin(
     override suspend fun getOwnedList(filter: PlatformOwnedProductFilter): List<PlatformOwnedProduct> {
         val helper = requireHelper()
         requireStore()
-        return awaitSdk("getOwnedList", INQUIRY_TIMEOUT) { done ->
+        return awaitSdk("getOwnedList", BACKGROUND_CALL_TIMEOUT) { done ->
             helper.getOwnedList(filter.toSdk()) { error: ErrorVo?, owned: ArrayList<OwnedProductVo>? ->
                 done(error) { owned!!.map { it.toPlatform() } }
             }
@@ -83,6 +86,30 @@ class SamsungIapFlutterPlugin(
                         "startPayment",
                     )
                 }
+            }
+        }
+    }
+
+    override suspend fun consumePurchasedItems(purchaseIds: String): List<PlatformAckResult> {
+        val helper = requireHelper()
+        requireStore()
+        return awaitSdk("consumePurchasedItems", BACKGROUND_CALL_TIMEOUT) { done ->
+            helper.consumePurchasedItems(purchaseIds) { error: ErrorVo?, results: ArrayList<ConsumeVo>? ->
+                done(error) { results!!.map { it.toPlatform() } }
+            }
+        }
+    }
+
+    override suspend fun acknowledgePurchases(purchaseIds: String): List<PlatformAckResult> {
+        val helper = requireHelper()
+        requireStore()
+        // The SDK's own check: below Galaxy Store 4.5.90 it returns false and never calls back.
+        if (!acknowledgeAvailable(context)) {
+            throw FlutterError("store_update_required", "Acknowledging needs Galaxy Store 4.5.90 or later.")
+        }
+        return awaitSdk("acknowledgePurchases", BACKGROUND_CALL_TIMEOUT) { done ->
+            helper.acknowledgePurchases(purchaseIds) { error: ErrorVo?, results: ArrayList<AcknowledgeVo>? ->
+                done(error) { results!!.map { it.toPlatform() } }
             }
         }
     }
@@ -247,6 +274,12 @@ private fun PurchaseVo.toPlatform() = PlatformPurchase(
     obfuscatedAccountId = obfuscatedAccountId.orEmpty(),
     obfuscatedProfileId = obfuscatedProfileId.orEmpty(),
     json = jsonString.orEmpty(),
+)
+
+private fun ConsumeVo.toPlatform() = PlatformAckResult(
+    purchaseId = purchaseId.orEmpty(),
+    statusCode = statusCode.toLong(),
+    statusString = statusString.orEmpty(),
 )
 
 private fun SubscriptionPriceChangeVo.toPlatform() = PlatformSubscriptionPriceChange(

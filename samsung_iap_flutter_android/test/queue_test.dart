@@ -41,6 +41,22 @@ final queuedCalls = <String, QueuedCall>{
         }),
     call: (plugin) => plugin.purchase('coins_100'),
   ),
+  'consume': (
+    stub: (api, sent) =>
+        when(() => api.consumePurchasedItems(any())).thenAnswer((_) async {
+          sent();
+          return [];
+        }),
+    call: (plugin) => plugin.consume(['a1b2c3']),
+  ),
+  'acknowledge': (
+    stub: (api, sent) =>
+        when(() => api.acknowledgePurchases(any())).thenAnswer((_) async {
+          sent();
+          return [];
+        }),
+    call: (plugin) => plugin.acknowledge(['a1b2c3']),
+  ),
 };
 
 void main() {

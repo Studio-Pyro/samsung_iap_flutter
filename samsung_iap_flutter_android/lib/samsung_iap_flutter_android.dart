@@ -69,6 +69,20 @@ class SamsungIapFlutterAndroid extends SamsungIapFlutterPlatform {
     ),
   );
 
+  @override
+  Future<List<PurchaseAckResult>> consume(List<String> purchaseIds) =>
+      _enqueue(() async {
+        final results = await _api.consumePurchasedItems(purchaseIds.join(','));
+        return results.map(ackResultFromPlatform).toList();
+      });
+
+  @override
+  Future<List<PurchaseAckResult>> acknowledge(List<String> purchaseIds) =>
+      _enqueue(() async {
+        final results = await _api.acknowledgePurchases(purchaseIds.join(','));
+        return results.map(ackResultFromPlatform).toList();
+      });
+
   /// Runs [call] after every earlier call has settled, so a failure never
   /// blocks the calls behind it.
   Future<T> _enqueue<T>(Future<T> Function() call) {

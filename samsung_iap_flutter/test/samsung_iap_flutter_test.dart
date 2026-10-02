@@ -297,4 +297,89 @@ void main() {
       }
     });
   });
+
+  final ackCalls = {
+    'consume': (
+      platformCall: (List<String> ids) => platform.consume(ids),
+      call: iap.consume,
+    ),
+    'acknowledge': (
+      platformCall: (List<String> ids) => platform.acknowledge(ids),
+      call: iap.acknowledge,
+    ),
+  };
+  for (final MapEntry(key: name, value: ack) in ackCalls.entries) {
+    group(name, () {
+      const results = [
+        PurchaseAckResult(
+          purchaseId: 'a1b2c3',
+          status: AckStatus.success,
+          statusCode: 0,
+          message: 'success',
+        ),
+        PurchaseAckResult(
+          purchaseId: 'bogus',
+          status: AckStatus.invalidPurchaseId,
+          statusCode: 1,
+          message: 'invalid purchaseId',
+        ),
+      ];
+
+      setUp(() {
+        when(() => ack.platformCall(any())).thenAnswer((_) async => results);
+      });
+
+      test('returns the per-purchase results of the platform', () async {
+        expect(await ack.call(['a1b2c3', 'bogus']), results);
+
+        verify(() => ack.platformCall(['a1b2c3', 'bogus'])).called(1);
+      });
+
+      test('rejects invalid purchase IDs before the platform', () async {
+        final rejected = {
+          'no IDs': <String>[],
+          'an empty ID': ['a1b2c3', ''],
+          'a blank ID': ['  '],
+          'a comma-joined ID': ['a1b2c3,d4e5f6'],
+        };
+        for (final MapEntry(key: reason, value: ids) in rejected.entries) {
+          await expectLater(
+            ack.call(ids),
+            throwsA(
+              isA<SamsungIapException>().having(
+                (e) => e.kind,
+                'kind',
+                SamsungIapErrorKind.invalidArgument,
+              ),
+            ),
+            reason: reason,
+          );
+        }
+        verifyNever(() => ack.platformCall(any()));
+      });
+
+      test('explains the rejection in the message', () async {
+        await expectLater(
+          ack.call([]),
+          throwsA(
+            isA<SamsungIapException>().having(
+              (e) => e.message,
+              'message',
+              'The list of purchase IDs is empty.',
+            ),
+          ),
+        );
+        await expectLater(
+          ack.call(['a,b']),
+          throwsA(
+            isA<SamsungIapException>().having(
+              (e) => e.message,
+              'message',
+              'Invalid purchase ID: "a,b".',
+            ),
+          ),
+        );
+      });
+    });
+  }
 }

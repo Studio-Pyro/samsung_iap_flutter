@@ -41,6 +41,7 @@ class _HomePageState extends State<HomePage> {
   List<OwnedProduct>? _owned;
   String? _purchase;
   bool _buying = false;
+  List<String> _ackResults = const [];
   String? _error;
 
   Future<void> _run(Future<void> Function() action) async {
@@ -91,6 +92,25 @@ class _HomePageState extends State<HomePage> {
     }
   });
 
+  /// Runs [call], `consume` or `acknowledge`, on [product] and shows each
+  /// result, then reloads the owned products to show the change.
+  Future<void> _ackAndReload(
+    String action,
+    Future<List<PurchaseAckResult>> Function(List<String>) call,
+    OwnedProduct product,
+  ) => _run(() async {
+    setState(() => _ackResults = const []);
+    final results = await call([product.purchaseId]);
+    setState(
+      () => _ackResults = [
+        for (final r in results)
+          '$action ${r.purchaseId}: ${r.status.name} (${r.statusCode})',
+      ],
+    );
+    final owned = await _iap.getOwnedProducts();
+    setState(() => _owned = owned);
+  });
+
   @override
   Widget build(BuildContext context) {
     final products = _products;
@@ -123,6 +143,7 @@ class _HomePageState extends State<HomePage> {
             child: const Text('Get owned products'),
           ),
           if (_purchase case final purchase?) Text(purchase),
+          for (final result in _ackResults) Text(result),
           if (_error case final error?)
             Text(
               error,
@@ -143,7 +164,21 @@ class _HomePageState extends State<HomePage> {
             ListTile(
               title: Text(product.name),
               subtitle: Text(_describeOwned(product)),
-              trailing: Text(product.acknowledgedStatus.name),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextButton(
+                    onPressed: () =>
+                        _ackAndReload('Consume', _iap.consume, product),
+                    child: const Text('Consume'),
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        _ackAndReload('Acknowledge', _iap.acknowledge, product),
+                    child: const Text('Acknowledge'),
+                  ),
+                ],
+              ),
             ),
         ],
       ),
@@ -163,6 +198,7 @@ class _HomePageState extends State<HomePage> {
   static String _describeOwned(OwnedProduct product) => [
     product.productId,
     product.purchaseId,
+    product.acknowledgedStatus.name,
     if (product.subscriptionEndDate case final end?) 'until $end',
     if (product.priceChange case final change?)
       'price change to ${change.newFormattedPrice}',
