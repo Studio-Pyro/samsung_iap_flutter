@@ -25,17 +25,6 @@ void main() {
     fail('getProducts did not throw');
   }
 
-  PlatformException sdkError(int code, {String? details = 'IS9224/6050/x'}) =>
-      PlatformException(
-        code: 'sdk',
-        message: 'Samsung says no.',
-        details: {
-          'errorCode': code,
-          'errorDetails': details,
-          'dialogShown': true,
-        },
-      );
-
   test('maps every Samsung response code to its kind', () async {
     final kinds = {
       1: SamsungIapErrorKind.userCanceled,
@@ -66,7 +55,9 @@ void main() {
   });
 
   test('keeps the raw Samsung fields', () async {
-    final e = await failWith(sdkError(-1003));
+    final e = await failWith(
+      sdkError(-1003, details: 'IS9224/6050/x', dialogShown: true),
+    );
 
     expect(e.message, 'Samsung says no.');
     expect(e.details, 'IS9224/6050/x');
