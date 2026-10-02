@@ -55,8 +55,8 @@ example's.
 | `samsung_iap_flutter_android.yaml` | Changes to the android package or the example's `android/` | Analyzes, formats and tests the package. Runs pana. Checks that the Pigeon output is current, and runs the Kotlin unit tests. |
 | `samsung_iap_flutter.yaml` | Changes to any package | Analyzes, formats and tests the app-facing package. Runs pana. Runs `integration_test/app_test.dart` on an API 34 emulator. |
 
-The pana jobs have a minimum score below 160 until the first release. See
-[pana minimum scores](PUBLISHING.md#pana-minimum-scores).
+The pana jobs have minimum scores below 160 for now.
+[pana minimum scores](PUBLISHING.md#pana-minimum-scores) says when to raise each one.
 
 ## Integration tests
 
