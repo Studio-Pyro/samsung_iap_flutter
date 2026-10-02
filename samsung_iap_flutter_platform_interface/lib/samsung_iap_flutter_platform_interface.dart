@@ -100,6 +100,23 @@ abstract class SamsungIapFlutterPlatform extends PlatformInterface {
   Future<List<PurchaseAckResult>> acknowledge(List<String> purchaseIds) {
     throw UnimplementedError('acknowledge() has not been implemented.');
   }
+
+  /// Moves the user's subscription from [fromProductId] to [toProductId]
+  /// with [prorationMode] through Samsung's payment UI, and completes when
+  /// the user finishes, however long that takes.
+  ///
+  /// The caller has already validated the arguments.
+  Future<SamsungPurchase> changeSubscriptionPlan({
+    required String fromProductId,
+    required String toProductId,
+    required ProrationMode prorationMode,
+    String? obfuscatedAccountId,
+    String? obfuscatedProfileId,
+  }) {
+    throw UnimplementedError(
+      'changeSubscriptionPlan() has not been implemented.',
+    );
+  }
 }
 
 class _PlaceholderImplementation extends SamsungIapFlutterPlatform;

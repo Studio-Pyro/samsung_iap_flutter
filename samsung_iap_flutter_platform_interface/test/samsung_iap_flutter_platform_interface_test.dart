@@ -151,6 +151,14 @@ void main() {
       expect(() => platform.purchase('coins_100'), throwsUnimplementedError);
       expect(() => platform.consume(['a1b2c3']), throwsUnimplementedError);
       expect(() => platform.acknowledge(['a1b2c3']), throwsUnimplementedError);
+      expect(
+        () => platform.changeSubscriptionPlan(
+          fromProductId: 'monthly',
+          toProductId: 'monthly_premium',
+          prorationMode: ProrationMode.instantProratedDate,
+        ),
+        throwsUnimplementedError,
+      );
     });
 
     test('accepts an instance that extends the base class', () {
