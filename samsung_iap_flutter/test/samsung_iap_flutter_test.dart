@@ -264,6 +264,16 @@ void main() {
     });
 
     test('names the broken rule in the message', () async {
+      await expectLater(
+        iap.purchase(' '),
+        throwsA(
+          isA<SamsungIapException>().having(
+            (e) => e.message,
+            'message',
+            'The product ID is empty.',
+          ),
+        ),
+      );
       final messages = {
         ('a' * 65, null):
             'The obfuscated account ID is longer than 64 '
@@ -382,4 +392,129 @@ void main() {
       });
     });
   }
+
+  group('changeSubscriptionPlan', () {
+    const upgraded = SamsungPurchase(
+      productId: 'monthly_premium',
+      name: 'Premium',
+      purchaseId: 'd4e5f6',
+      paymentId: 'TPMTID20260201',
+      orderId: 'S20260201KRA1234567',
+      type: SamsungProductType.subscription,
+      purchaseDate: null,
+      minorStatus: MinorStatus.notMinor,
+      obfuscatedAccountId: 'account',
+      obfuscatedProfileId: null,
+      price: 9.99,
+      formattedPrice: '£9.99',
+      currencyCode: 'GBP',
+      rawJson: '{}',
+    );
+
+    Future<SamsungPurchase> platformChange() => platform.changeSubscriptionPlan(
+      fromProductId: any(named: 'fromProductId'),
+      toProductId: any(named: 'toProductId'),
+      prorationMode: any(named: 'prorationMode'),
+      obfuscatedAccountId: any(named: 'obfuscatedAccountId'),
+      obfuscatedProfileId: any(named: 'obfuscatedProfileId'),
+    );
+
+    Matcher throwsInvalidArgument(String message) => throwsA(
+      isA<SamsungIapException>()
+          .having((e) => e.kind, 'kind', SamsungIapErrorKind.invalidArgument)
+          .having((e) => e.message, 'message', message),
+    );
+
+    setUpAll(() => registerFallbackValue(ProrationMode.deferred));
+
+    setUp(() {
+      when(platformChange).thenAnswer((_) async => upgraded);
+    });
+
+    test('passes every proration mode and returns the new purchase', () async {
+      for (final mode in ProrationMode.values) {
+        expect(
+          await iap.changeSubscriptionPlan(
+            fromProductId: 'monthly',
+            toProductId: 'monthly_premium',
+            prorationMode: mode,
+          ),
+          upgraded,
+        );
+
+        verify(
+          () => platform.changeSubscriptionPlan(
+            fromProductId: 'monthly',
+            toProductId: 'monthly_premium',
+            prorationMode: mode,
+          ),
+        ).called(1);
+      }
+    });
+
+    test('passes valid obfuscated IDs unchanged', () async {
+      await iap.changeSubscriptionPlan(
+        fromProductId: 'monthly',
+        toProductId: 'monthly_premium',
+        prorationMode: ProrationMode.instantProratedDate,
+        obfuscatedAccountId: 'a' * 64,
+        obfuscatedProfileId: 'profile',
+      );
+
+      verify(
+        () => platform.changeSubscriptionPlan(
+          fromProductId: 'monthly',
+          toProductId: 'monthly_premium',
+          prorationMode: ProrationMode.instantProratedDate,
+          obfuscatedAccountId: 'a' * 64,
+          obfuscatedProfileId: 'profile',
+        ),
+      ).called(1);
+    });
+
+    test('rejects invalid arguments before the platform', () async {
+      final rejected = <(String, String, String?, String?), String>{
+        ('', 'monthly_premium', null, null): 'The from product ID is empty.',
+        ('monthly', '  ', null, null): 'The to product ID is empty.',
+        ('monthly', 'monthly_premium', 'a' * 65, null):
+            'The obfuscated account ID is longer than 64 UTF-8 bytes.',
+        ('monthly', 'monthly_premium', 'account', 'jo@example.com'):
+            'The obfuscated profile ID looks like an email address.',
+        ('monthly', 'monthly_premium', null, 'profile'):
+            'An obfuscated profile ID needs an obfuscated account ID.',
+        ('monthly', 'monthly_premium', '', null):
+            'The obfuscated account ID is empty; pass null to omit it.',
+      };
+      for (final MapEntry(key: (from, to, account, profile), value: message)
+          in rejected.entries) {
+        await expectLater(
+          iap.changeSubscriptionPlan(
+            fromProductId: from,
+            toProductId: to,
+            prorationMode: ProrationMode.instantProratedDate,
+            obfuscatedAccountId: account,
+            obfuscatedProfileId: profile,
+          ),
+          throwsInvalidArgument(message),
+        );
+      }
+      verifyNever(platformChange);
+    });
+
+    test('sends a change to the same product', () async {
+      await iap.changeSubscriptionPlan(
+        fromProductId: 'monthly',
+        toProductId: 'monthly',
+        prorationMode: ProrationMode.deferred,
+      );
+
+      verify(
+        () => platform.changeSubscriptionPlan(
+          fromProductId: 'monthly',
+          toProductId: 'monthly',
+          prorationMode: ProrationMode.deferred,
+        ),
+      ).called(1);
+    });
+  });
 }

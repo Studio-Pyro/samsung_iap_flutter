@@ -82,6 +82,26 @@ void main() {
       expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
     });
 
+    test('changeSubscriptionPlan fails fast with storeUnavailable', () async {
+      final stopwatch = Stopwatch()..start();
+
+      await expectLater(
+        iap.changeSubscriptionPlan(
+          fromProductId: 'monthly',
+          toProductId: 'monthly_premium',
+          prorationMode: ProrationMode.instantProratedDate,
+        ),
+        throwsA(
+          isA<SamsungIapException>().having(
+            (e) => e.kind,
+            'kind',
+            SamsungIapErrorKind.storeUnavailable,
+          ),
+        ),
+      );
+      expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
+    });
+
     testWidgets('the example shows the store status and the error', (
       tester,
     ) async {

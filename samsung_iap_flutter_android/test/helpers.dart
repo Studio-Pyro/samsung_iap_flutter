@@ -11,6 +11,7 @@ class MockHostApi extends Mock implements SamsungIapHostApi;
 (MockHostApi, SamsungIapFlutterAndroid) newPlugin() {
   registerFallbackValue(PlatformOperationMode.production);
   registerFallbackValue(PlatformOwnedProductFilter.all);
+  registerFallbackValue(PlatformProrationMode.deferred);
   final api = MockHostApi();
   when(() => api.initialize(any(), any())).thenAnswer((_) async {});
   return (api, SamsungIapFlutterAndroid(api: api));
@@ -53,11 +54,16 @@ const ackResults = [
 ];
 
 /// A Samsung error for the whole call, as the Kotlin bridge sends it.
-PlatformException sdkError(int code) => PlatformException(
-  code: 'sdk',
-  message: 'Samsung says no.',
-  details: {'errorCode': code, 'errorDetails': '', 'dialogShown': false},
-);
+PlatformException sdkError(int code, {String details = ''}) =>
+    PlatformException(
+      code: 'sdk',
+      message: 'Samsung says no.',
+      details: {
+        'errorCode': code,
+        'errorDetails': details,
+        'dialogShown': false,
+      },
+    );
 
 /// A `PurchaseVo` mirror with every field set.
 PlatformPurchase purchaseWire({

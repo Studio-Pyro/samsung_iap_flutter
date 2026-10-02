@@ -9,10 +9,10 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
+import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.never
 import org.mockito.Mockito.reset
 import org.mockito.Mockito.verify
-import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -83,7 +83,7 @@ class GuardedSdkCallsTest : PluginTestBase() {
     )
 
     @TestFactory
-    fun guardedSdkCalls() = (inquiryCalls + ackCalls + paymentCall).flatMap { guarded ->
+    fun guardedSdkCalls() = (inquiryCalls + ackCalls + paymentCalls).flatMap { guarded ->
         guards.map { (case, check) ->
             DynamicTest.dynamicTest("${guarded.name} $case") {
                 reset(helper)
@@ -116,16 +116,51 @@ class GuardedSdkCallsTest : PluginTestBase() {
         }
     }
 
-    @Test
-    fun startPaymentStillWaitsAfter24Hours() = runTest {
-        answer(paymentCall)
-        val plugin = initializedPlugin()
+    @TestFactory
+    fun paymentsStillWaitAfter24Hours() = paymentCalls.map { guarded ->
+        DynamicTest.dynamicTest(guarded.name) {
+            reset(helper)
+            runTest {
+                answer(guarded)
+                val plugin = initializedPlugin()
 
-        val result = async { plugin.startPayment("coins_100", null, null) }
-        advanceTimeBy(24.hours)
-        runCurrent()
+                val result = async { guarded.call(plugin) }
+                advanceTimeBy(24.hours)
+                runCurrent()
 
-        assertFalse(result.isCompleted, "still waiting after 24h")
-        result.cancel()
+                assertFalse(result.isCompleted, "still waiting after 24h")
+                result.cancel()
+            }
+        }
+    }
+
+    @TestFactory
+    fun paymentsReportASuccessWithoutAPurchaseAsResultUnknown() = paymentCalls.flatMap { guarded ->
+        listOf("a success" to errorVo(0), "no error" to null).map { (case, error) ->
+            DynamicTest.dynamicTest("${guarded.name} with $case") {
+                reset(helper)
+                answer(guarded) { guarded.callBack(it, error, null) }
+
+                runTest {
+                    val failure = assertFailsWith<FlutterError> { guarded.call(initializedPlugin()) }
+
+                    assertEquals("result_unknown" to guarded.name, failure.code to failure.details)
+                }
+            }
+        }
+    }
+
+    @TestFactory
+    fun sentCallsMapAFalseReturnToNotSent() = (ackCalls + paymentCalls).map { guarded ->
+        DynamicTest.dynamicTest(guarded.name) {
+            reset(helper)
+            runTest {
+                doAnswer { false }.`when`(helper).let(guarded.sdk)
+
+                val error = assertFailsWith<FlutterError> { guarded.call(initializedPlugin()) }
+
+                assertEquals("not_sent" to guarded.name, error.code to error.details)
+            }
+        }
     }
 }

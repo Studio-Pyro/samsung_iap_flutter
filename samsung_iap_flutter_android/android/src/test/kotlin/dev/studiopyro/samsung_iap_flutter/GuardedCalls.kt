@@ -2,6 +2,7 @@ package dev.studiopyro.samsung_iap_flutter
 
 import com.samsung.android.sdk.iap.lib.helper.IapHelper
 import com.samsung.android.sdk.iap.lib.listener.OnAcknowledgePurchasesListener
+import com.samsung.android.sdk.iap.lib.listener.OnChangeSubscriptionPlanListener
 import com.samsung.android.sdk.iap.lib.listener.OnConsumePurchasedItemsListener
 import com.samsung.android.sdk.iap.lib.listener.OnGetOwnedListListener
 import com.samsung.android.sdk.iap.lib.listener.OnGetProductsDetailsListener
@@ -63,3 +64,16 @@ val paymentCall = GuardedCall(
     call = { it.startPayment("coins_100", null, null) },
     sdk = { it.startPayment(anyString(), any(), any(), any()) },
 )
+
+val planChangeCall = GuardedCall(
+    "changeSubscriptionPlan",
+    OnChangeSubscriptionPlanListener::class.java,
+    sent = true,
+    call = {
+        it.changeSubscriptionPlan("monthly", "monthly_premium", PlatformProrationMode.INSTANT_PRORATED_DATE, null, null)
+    },
+    sdk = { it.changeSubscriptionPlan(anyString(), anyString(), any(), any(), any(), any()) },
+)
+
+/** Calls that show Samsung's payment UI and wait as long as the user does. */
+val paymentCalls = listOf(paymentCall, planChangeCall)

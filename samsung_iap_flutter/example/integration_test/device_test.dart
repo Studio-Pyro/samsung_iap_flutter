@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:samsung_iap_flutter/samsung_iap_flutter.dart';
@@ -17,6 +18,13 @@ const consumeIdDefine = String.fromEnvironment('SAMSUNG_IAP_CONSUME_ID');
 const acknowledgeIdDefine = String.fromEnvironment(
   'SAMSUNG_IAP_ACKNOWLEDGE_ID',
 );
+
+/// A subscription tier the license tester is subscribed to, to upgrade from.
+const planFromIdDefine = String.fromEnvironment('SAMSUNG_IAP_PLAN_FROM_ID');
+
+/// A pricier tier of the same subscription, to upgrade to and then try to
+/// downgrade from.
+const planToIdDefine = String.fromEnvironment('SAMSUNG_IAP_PLAN_TO_ID');
 
 const _bogusPurchaseId = 'samsung-iap-flutter-bogus';
 
@@ -176,5 +184,54 @@ void main() {
         ? 'Set SAMSUNG_IAP_ACKNOWLEDGE_ID to buy and acknowledge interactively.'
         : false,
     timeout: const Timeout(Duration(minutes: 5)),
+  );
+
+  group(
+    'changeSubscriptionPlan',
+    () {
+      test('upgrades to the pricier tier at once', () async {
+        final purchase = await iap.changeSubscriptionPlan(
+          fromProductId: planFromIdDefine,
+          toProductId: planToIdDefine,
+          prorationMode: ProrationMode.instantProratedDate,
+        );
+
+        expect(purchase.productId, planToIdDefine);
+        expect(purchase.purchaseId, isNotEmpty);
+        expect(purchase.orderId, isNotEmpty);
+        expect(purchase.type, SamsungProductType.subscription);
+        final owned = await iap.getOwnedProducts(
+          filter: OwnedProductFilter.subscription,
+        );
+        expect(owned.map((p) => p.purchaseId), contains(purchase.purchaseId));
+      }, timeout: const Timeout(Duration(minutes: 5)));
+
+      test('refuses an instant downgrade with a detail code', () async {
+        // Both Samsung guides call this mode upgrade-only.
+        try {
+          final purchase = await iap.changeSubscriptionPlan(
+            fromProductId: planToIdDefine,
+            toProductId: planFromIdDefine,
+            prorationMode: ProrationMode.instantProratedCharge,
+          );
+          fail('Samsung accepted an instant downgrade: $purchase');
+        } on SamsungIapException catch (e) {
+          // TODO(user): S5 acceptance #2 and issue #1 story 44. Record the
+          // detail code Samsung reports for an instant downgrade, and assert
+          // it here.
+          debugPrint('instant downgrade: $e');
+          expect(e.kind, SamsungIapErrorKind.general, reason: '$e');
+          expect(
+            e.detailCode,
+            isNot(anyOf(1005, 1006, 1012, 1014)),
+            reason: 'a plan-change error other than a refused downgrade: $e',
+          );
+        }
+      }, timeout: const Timeout(Duration(minutes: 5)));
+    },
+    skip: planFromIdDefine.isEmpty || planToIdDefine.isEmpty
+        ? 'Set SAMSUNG_IAP_PLAN_FROM_ID and SAMSUNG_IAP_PLAN_TO_ID to change '
+              'a subscription plan interactively.'
+        : false,
   );
 }

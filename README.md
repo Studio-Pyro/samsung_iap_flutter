@@ -87,6 +87,34 @@ flutter test integration_test/device_test.dart \
 In TEST mode, Samsung lets the tester buy an acknowledged item again after 10 minutes. Wait that
 long before you run the acknowledge test again with the same item.
 
+The plan-change tests are interactive and need two tiers of one subscription. Subscribe the tester
+to the cheaper tier first, for example with the example app. Pass the cheaper tier in
+`SAMSUNG_IAP_PLAN_FROM_ID` and the pricier tier in `SAMSUNG_IAP_PLAN_TO_ID`:
+
+- The upgrade test changes the plan to the pricier tier with `instantProratedDate`. It checks that
+  the new purchase is for that tier and that it is in the owned list. Tap through the plan-change
+  UI.
+- The downgrade test then tries to change back with `instantProratedCharge`, which Samsung allows
+  only for upgrades. It expects a `general` error whose detail code is not one of the documented
+  plan-change codes (1005, 1006, 1012 and 1014), and prints it. Record the detail code in the test,
+  where a TODO marks the place.
+
+Each run leaves the tester on the pricier tier. To reset it before the next run:
+
+1. In the example app, change the plan back to the cheaper tier with `deferred`, as in manual
+   check 11 below.
+2. Wait for the next renewal. In TEST mode, a subscription period is 10 minutes.
+
+Until that renewal, Samsung refuses further changes, and the upgrade test most likely fails with
+detail code 1014. The same applies if Samsung ever accepts the instant downgrade and schedules it
+for the renewal.
+
+```sh
+flutter test integration_test/device_test.dart \
+  --dart-define=SAMSUNG_IAP_PLAN_FROM_ID=<cheaper tier id> \
+  --dart-define=SAMSUNG_IAP_PLAN_TO_ID=<pricier tier id>
+```
+
 Some checks cannot be automated. Do them by hand in the example app, which starts in TEST mode:
 
 1. Disable Galaxy Store in the system settings.
@@ -108,6 +136,10 @@ Some checks cannot be automated. Do them by hand in the example app, which start
 10. Tap **Acknowledge** on an owned subscription or item. The app shows
     `Acknowledge <purchase ID>: success (0)`, and the reloaded row shows `acknowledged`. Tap
     **Acknowledge** again. The app shows `alreadyProcessed (4)`.
+11. Tap **Get products**. Below the products, pick the subscribed tier in **From**, a cheaper tier
+    in **To**, and `instantProratedCharge`. Tap **Change plan**. The app shows the error and its
+    detail code. Pick `deferred`, tap **Change plan** again and complete the plan-change UI. The
+    app shows `Changed to <product ID>` with the purchase and order IDs.
 
 Then check the R8 keep rules of the plugin. Run a minified release build, tap **Buy** on a product the
 tester does not own, and complete the payment. The app shows the purchase and order IDs.

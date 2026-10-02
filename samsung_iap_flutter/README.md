@@ -152,11 +152,64 @@ the same codes as `PurchaseAckResult.statusCode`. With this approach, the server
 purchase also consumes it. See Samsung's [Purchase Acknowledgment API][ack_api_link] for the batch
 form, and [Get Started with the IAP APIs][iap_api_link] for the access token.
 
+## Changing a subscription plan
+
+Call `changeSubscriptionPlan` to move a subscriber between two tiers of the same subscription.
+Samsung shows its payment UI, and the `Future` completes when the user leaves it. There is no
+timeout. On success, it returns the `SamsungPurchase` of the new tier. Verify and acknowledge it
+like any other purchase. With `deferred`, the new tier starts at the next renewal. Keep granting the
+old tier until `getOwnedProducts` or your server receipt shows the new one.
+
+```dart
+final purchase = await iap.changeSubscriptionPlan(
+  fromProductId: 'monthly',
+  toProductId: 'monthly_premium',
+  prorationMode: ProrationMode.instantProratedDate,
+  obfuscatedAccountId: hashedUserId,
+);
+```
+
+Pick the proration mode by the direction of the change. Samsung calls a change to a tier that
+costs the same or more an upgrade, and a change to a cheaper tier a downgrade.
+
+| Mode | When the new tier starts | How Samsung bills | Use for |
+|---|---|---|---|
+| `instantProratedDate` | Now | The value left on the old tier becomes time on the new one, so the renewal date moves. | Upgrades. See below for downgrades. |
+| `instantProratedCharge` | Now | Charges the price difference for the rest of the period. The renewal date stays. | Upgrades only |
+| `instantNoProration` | Now | Charges the new price from the next renewal. | Upgrades only |
+| `deferred` | At the next renewal | Charges the new price at renewal. The user cannot change plans again until then. | Downgrades |
+
+Samsung's guides disagree on downgrades. The IAP Helper guide says a downgrade always runs as
+`deferred`. The [proration modes][proration_link] page describes an instant downgrade with
+`instantProratedDate`. `deferred` is the only mode both guides allow for a downgrade, so pass it for
+every downgrade. What Samsung does with an instant downgrade is still to be checked on a device.
+
+Handle the errors as you do for `purchase`. As there, after `network` or `purchaseResultUnknown`
+the change may have gone through, so call `getOwnedProducts` and check which tier the user owns
+before you retry or tell the user anything.
+
+Also read the detail code of `general`. Samsung reports a change it rejects as `general`, and
+`detailCode` tells why:
+
+- 1005: the subscription `fromProductId` does not exist.
+- 1006: the user is not subscribed to `fromProductId`.
+- 1012: `toProductId` is not a subscription.
+- 1014: a change was already requested.
+
+The plugin rejects these arguments with `invalidArgument` before it calls Samsung:
+
+- An empty `fromProductId` or `toProductId`.
+- An obfuscated ID that breaks the [rules above](#obfuscated-ids).
+
+Samsung's docs describe a change to another tier, but neither they nor the SDK reject the same
+tier. The plugin passes such a change on and reports Samsung's answer.
+
 [ack_api_link]: https://developer.samsung.com/iap/api/iap-purchase-acknowledgment.html
 [iap_api_link]: https://developer.samsung.com/iap/api/get-started.html
 [coverage_badge]: coverage_badge.svg
 [license_badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [license_link]: https://opensource.org/licenses/MIT
+[proration_link]: https://developer.samsung.com/iap/subscription-guide/manage-subscription-plan/proration-modes.html
 [logo_black]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_black.png#gh-light-mode-only
 [logo_white]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_white.png#gh-dark-mode-only
 [very_good_analysis_badge]: https://img.shields.io/badge/style-very_good_analysis-B22C89.svg

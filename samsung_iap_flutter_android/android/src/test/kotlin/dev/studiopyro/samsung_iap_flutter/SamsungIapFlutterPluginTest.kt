@@ -8,6 +8,7 @@ import com.samsung.android.sdk.iap.lib.constants.HelperDefine.AcknowledgedStatus
 import com.samsung.android.sdk.iap.lib.constants.HelperDefine.MinorStatus
 import com.samsung.android.sdk.iap.lib.constants.HelperDefine.OperationMode
 import com.samsung.android.sdk.iap.lib.constants.HelperDefine.PriceChangeMode
+import com.samsung.android.sdk.iap.lib.constants.HelperDefine.ProrationMode
 import com.samsung.android.sdk.iap.lib.listener.OnGetOwnedListListener
 import com.samsung.android.sdk.iap.lib.listener.OnGetProductsDetailsListener
 import com.samsung.android.sdk.iap.lib.vo.AcknowledgeVo
@@ -275,6 +276,24 @@ class SamsungIapFlutterPluginTest : PluginTestBase() {
             `when`(it.jsonString).thenReturn("""{"mPurchaseId":"a1b2c3"}""")
         }
 
+    /** [purchaseVo] as the bridge sends it. */
+    private val mappedPurchase = PlatformPurchase(
+        itemId = "coins_100",
+        itemName = "",
+        itemPrice = 0.99,
+        itemPriceString = "£0.99",
+        currencyCode = "GBP",
+        type = "item",
+        paymentId = "TPMTID20260101",
+        purchaseId = "a1b2c3",
+        orderId = "S20260101KRA1234567",
+        purchaseDate = "2026-01-01 09:00:00",
+        minorStatus = "NOT_MINOR",
+        obfuscatedAccountId = "account",
+        obfuscatedProfileId = "",
+        json = """{"mPurchaseId":"a1b2c3"}""",
+    )
+
     private fun answerPayment(purchase: PurchaseVo) {
         answer(paymentCall) { paymentCall.callBack(it, errorVo(0), purchase) }
     }
@@ -285,25 +304,7 @@ class SamsungIapFlutterPluginTest : PluginTestBase() {
 
         val purchase = initializedPlugin().startPayment("coins_100", "account", "profile")
 
-        assertEquals(
-            PlatformPurchase(
-                itemId = "coins_100",
-                itemName = "",
-                itemPrice = 0.99,
-                itemPriceString = "£0.99",
-                currencyCode = "GBP",
-                type = "item",
-                paymentId = "TPMTID20260101",
-                purchaseId = "a1b2c3",
-                orderId = "S20260101KRA1234567",
-                purchaseDate = "2026-01-01 09:00:00",
-                minorStatus = "NOT_MINOR",
-                obfuscatedAccountId = "account",
-                obfuscatedProfileId = "",
-                json = """{"mPurchaseId":"a1b2c3"}""",
-            ),
-            purchase,
-        )
+        assertEquals(mappedPurchase, purchase)
         verify(helper).startPayment(eq("coins_100"), eq("account"), eq("profile"), any())
     }
 
@@ -324,29 +325,52 @@ class SamsungIapFlutterPluginTest : PluginTestBase() {
     }
 
     @Test
-    fun startPaymentReportsASuccessWithoutAPurchaseAsResultUnknown() = runTest {
-        for (error in listOf(errorVo(0), null)) {
-            answer(paymentCall) { paymentCall.callBack(it, error, null) }
+    fun changeSubscriptionPlanSendsTheIdsAndReturnsTheMappedPurchase() = runTest {
+        answer(planChangeCall) { planChangeCall.callBack(it, errorVo(0), purchaseVo()) }
 
-            val failure = assertFailsWith<FlutterError> {
-                initializedPlugin().startPayment("coins_100", null, null)
-            }
+        val purchase = initializedPlugin().changeSubscriptionPlan(
+            "monthly",
+            "monthly_premium",
+            PlatformProrationMode.DEFERRED,
+            "account",
+            "profile",
+        )
 
-            assertEquals("result_unknown", failure.code, "error: $error")
-            assertEquals("startPayment", failure.details)
-        }
+        assertEquals(mappedPurchase, purchase)
+        verify(helper).changeSubscriptionPlan(
+            eq("monthly"),
+            eq("monthly_premium"),
+            eq(ProrationMode.DEFERRED),
+            eq("account"),
+            eq("profile"),
+            any(),
+        )
     }
 
     @Test
-    fun startPaymentMapsAFalseReturnToNotSent() = runTest {
-        doAnswer { false }.`when`(helper).startPayment(anyString(), any(), any(), any())
+    fun changeSubscriptionPlanMapsEveryProrationMode() = runTest {
+        val expected = mapOf(
+            PlatformProrationMode.INSTANT_PRORATED_DATE to ProrationMode.INSTANT_PRORATED_DATE,
+            PlatformProrationMode.INSTANT_PRORATED_CHARGE to ProrationMode.INSTANT_PRORATED_CHARGE,
+            PlatformProrationMode.INSTANT_NO_PRORATION to ProrationMode.INSTANT_NO_PRORATION,
+            PlatformProrationMode.DEFERRED to ProrationMode.DEFERRED,
+        )
+        assertEquals(PlatformProrationMode.entries.toSet(), expected.keys)
+        answer(planChangeCall) { planChangeCall.callBack(it, errorVo(0), purchaseVo()) }
+        val plugin = initializedPlugin()
 
-        val error = assertFailsWith<FlutterError> {
-            initializedPlugin().startPayment("coins_100", null, null)
+        expected.forEach { (mode, sdkMode) ->
+            plugin.changeSubscriptionPlan("monthly", "monthly_premium", mode, null, null)
+
+            verify(helper).changeSubscriptionPlan(
+                eq("monthly"),
+                eq("monthly_premium"),
+                eq(sdkMode),
+                isNull(),
+                isNull(),
+                any(),
+            )
         }
-
-        assertEquals("not_sent", error.code)
-        assertEquals("startPayment", error.details)
     }
 
     private fun <T : ConsumeVo> ackVo(type: Class<T>, purchaseId: String?, statusCode: Int, statusString: String?): T =
@@ -380,20 +404,6 @@ class SamsungIapFlutterPluginTest : PluginTestBase() {
                 assertEquals(expectedAckResults, send(initializedPlugin(), "a1b2c3,bogus"))
                 val sent = mockingDetails(helper).invocations.single { it.method.name == ack.name }
                 assertEquals("a1b2c3,bogus", sent.arguments.first())
-            }
-        }
-    }
-
-    @TestFactory
-    fun ackCallsMapAFalseReturnToNotSent() = ackCalls.map { ack ->
-        DynamicTest.dynamicTest(ack.name) {
-            reset(helper)
-            runTest {
-                doAnswer { false }.`when`(helper).let(ack.sdk)
-
-                val error = assertFailsWith<FlutterError> { ack.call(initializedPlugin()) }
-
-                assertEquals("not_sent" to ack.name, error.code to error.details)
             }
         }
     }

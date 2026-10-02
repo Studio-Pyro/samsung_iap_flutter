@@ -15,6 +15,13 @@ enum PlatformStoreStatus { available, notInstalled, disabled, invalid }
 
 enum PlatformOwnedProductFilter { item, subscription, all }
 
+enum PlatformProrationMode {
+  instantProratedDate,
+  instantProratedCharge,
+  instantNoProration,
+  deferred,
+}
+
 /// `ProductVo` field for field. Kotlin sends a missing string as `""` and
 /// Dart does all interpretation.
 class PlatformProduct {
@@ -215,4 +222,14 @@ abstract class SamsungIapHostApi {
   /// `store_update_required` on a Galaxy Store that cannot acknowledge.
   @async
   List<PlatformAckResult> acknowledgePurchases(String purchaseIds);
+
+  /// Completes when the user leaves Samsung's plan-change UI. No timeout.
+  @async
+  PlatformPurchase changeSubscriptionPlan(
+    String oldItemId,
+    String newItemId,
+    PlatformProrationMode prorationMode,
+    String? obfuscatedAccountId,
+    String? obfuscatedProfileId,
+  );
 }
