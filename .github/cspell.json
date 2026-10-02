@@ -16,5 +16,5 @@
   ],
   "useGitignore": true,
   "ignorePaths": ["../docs/**"],
-  "words": ["gradlew", "pubignore", "Pyro", "studiopyro"]
+  "words": ["AIDL", "gradlew", "pubignore", "Pyro", "studiopyro"]
 }

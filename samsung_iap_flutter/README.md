@@ -25,14 +25,14 @@ Contents:
 - [Add a Galaxy build flavor](#add-a-galaxy-build-flavor)
 - [Quick start](#quick-start)
 - [Reconcile at every launch](#reconcile-at-every-launch)
-- [Purchasing](#purchasing)
-- [Consuming and acknowledging](#consuming-and-acknowledging)
-- [Subscriptions](#subscriptions)
-- [Checking promotion eligibility](#checking-promotion-eligibility)
-- [Handling errors](#handling-errors)
-- [Verifying purchases on your server](#verifying-purchases-on-your-server)
-- [Using with RevenueCat](#using-with-revenuecat)
-- [Testing your integration](#testing-your-integration)
+- [Buy a product](#buy-a-product)
+- [Consume or acknowledge a purchase](#consume-or-acknowledge-a-purchase)
+- [Sell subscriptions](#sell-subscriptions)
+- [Check promotion eligibility](#check-promotion-eligibility)
+- [Handle errors](#handle-errors)
+- [Verify purchases on your server](#verify-purchases-on-your-server)
+- [Use with RevenueCat](#use-with-revenuecat)
+- [Test your integration](#test-your-integration)
 - [Limitations](#limitations)
 
 ## Requirements
@@ -66,13 +66,13 @@ Pick an operation mode for each build and pass it to `initialize`:
 |---|---|---|
 | `OperationMode.production` | Real payments and real results. The default. | Every build you submit for review or release. |
 | `OperationMode.test` | Payments succeed and charge nothing. Only license testers can buy. Everyone else gets `general` with detail code 100010. | Development, while the app status in Seller Portal is *Registering* or *Updating*. |
-| `OperationMode.testFailure` | Every Samsung call fails. | Testing your error handling. See [Testing error handling](#testing-error-handling). |
+| `OperationMode.testFailure` | Every Samsung call fails. | Testing your error handling. See [Test error handling](#test-error-handling). |
 
 A purchase made in one mode is owned only in that mode. Samsung tells you to use the test modes only
 while the app status is *Registering* or *Updating*. If you submit a build in TEST mode, license
 testers get products for free and everyone else gets an error.
 
-TEST mode runs on a short clock, so plan your test runs around it:
+In TEST mode, Samsung changes these timings:
 
 - Each subscription period lasts 10 minutes, and so does the grace period.
 - A subscription cancels itself after 12 renewals.
@@ -94,7 +94,7 @@ flutter pub add samsung_iap_flutter
 ```
 
 You change no Gradle files and no manifest. The plugin adds the SDK, the billing and internet
-permissions, and the R8 keep rules for the SDK classes.
+permissions, and an R8 keep rule for Samsung's IAP service (AIDL) classes.
 
 ## Add a Galaxy build flavor
 
@@ -131,8 +131,9 @@ flutter run --flavor galaxy -t lib/main_galaxy.dart
 flutter build apk --flavor galaxy -t lib/main_galaxy.dart
 ```
 
-Register the Galaxy package name in Seller Portal. If you have a backend, check receipts against it.
-See [Verifying purchases on your server](#verifying-purchases-on-your-server).
+Register the Galaxy package name in Seller Portal. If you have a backend, have it check that each
+receipt's `packageName` is the Galaxy package name. See
+[Verify purchases on your server](#verify-purchases-on-your-server).
 
 ### Keep the package name of an app that is already live
 
@@ -155,16 +156,14 @@ Check Galaxy Store, initialize, reconcile what the user owns, and load the produ
 import 'package:flutter/foundation.dart';
 import 'package:samsung_iap_flutter/samsung_iap_flutter.dart';
 
-const iap = SamsungIap();
-
-Future<List<SamsungProduct>> startStore() async {
+Future<List<SamsungProduct>> startStore(SamsungIap iap) async {
   if (await iap.getGalaxyStoreStatus() != GalaxyStoreStatus.available) {
     return []; // Hide the store UI.
   }
   await iap.initialize(
     mode: kReleaseMode ? OperationMode.production : OperationMode.test,
   );
-  await reconcile(await iap.getOwnedProducts());
+  await reconcile(iap, await iap.getOwnedProducts());
   return iap.getProducts(['coins_100', 'premium', 'monthly']);
 }
 ```
@@ -173,8 +172,9 @@ Future<List<SamsungProduct>> startStore() async {
 before any other method. Its `mode` defaults to `OperationMode.production`, so a build that forgets
 to set it never ships in TEST mode. `getProducts` with no IDs returns every product of the app.
 
-The rest of this guide uses this `iap` constant. `SamsungIap` holds no state, so you can replace it
-with a mock in your tests.
+Create the client once, with `const iap = SamsungIap();`, and pass it to the code that uses it, as
+`startStore` takes it. In tests, pass a mock in place of `iap`. See
+[Test your integration](#test-your-integration). The rest of this guide calls the client `iap`.
 
 ## Reconcile at every launch
 
@@ -183,7 +183,7 @@ the app process dies while the payment sheet is open, that result is lost, but t
 paid. Call `getOwnedProducts` at every launch and grant anything you have not granted yet:
 
 ```dart
-Future<void> reconcile(List<OwnedProduct> owned) async {
+Future<void> reconcile(SamsungIap iap, List<OwnedProduct> owned) async {
   for (final product in owned) {
     await grant(product.productId, product.purchaseId); // Skip it if already granted.
   }
@@ -208,10 +208,10 @@ so `reconcile` also finishes any consume that failed last time.
 You can call `purchase` while `getOwnedProducts` is still running. The plugin runs one Samsung call
 at a time, and the purchase starts when the inquiry finishes.
 
-## Purchasing
+## Buy a product
 
 Call `purchase` with a product ID from Seller Portal, as in the example under
-[Handling errors](#handling-errors). Samsung shows its payment sheet, and the `Future` completes when
+[Handle errors](#handle-errors). Samsung shows its payment sheet, and the `Future` completes when
 the user leaves it. There is no timeout.
 
 ```dart
@@ -220,10 +220,10 @@ final purchase = await iap.purchase('coins_100', obfuscatedAccountId: hashedUser
 
 Verify, then grant. If you have a server, send it `purchase.purchaseId` and let it verify the
 purchase before you grant access. See
-[Verifying purchases on your server](#verifying-purchases-on-your-server). After you grant the
+[Verify purchases on your server](#verify-purchases-on-your-server). After you grant the
 purchase, consume or acknowledge it.
 
-### Obfuscated IDs
+### Pass obfuscated IDs
 
 Pass `obfuscatedAccountId`, and optionally `obfuscatedProfileId`, so your server can match a
 purchase to a user. Samsung returns them on the purchase and on each owned product. The plugin
@@ -234,7 +234,7 @@ rejects these values with `invalidArgument` before it calls Samsung:
 - An empty ID. Pass `null` to omit it.
 - A profile ID without an account ID.
 
-## Consuming and acknowledging
+## Consume or acknowledge a purchase
 
 After you grant a purchase, tell Samsung it is done. Pick the call by what the product is:
 
@@ -266,7 +266,7 @@ Handle each purchase by its `status`:
   and `unauthorized` describe the purchase, not the connection. `unknown` is a status this
   version of the plugin does not know. Log them with `statusCode` and `message`.
 
-Handle a failed call as [Handling errors](#handling-errors) describes. Two cases are specific to
+Handle a failed call as [Handle errors](#handle-errors) describes. Two cases are specific to
 these calls:
 
 - **Check the IDs on `general` with `detailCode` 9226.** Samsung rejected a purchase ID and
@@ -301,7 +301,7 @@ the same codes as `PurchaseAckResult.statusCode`. With this approach, the server
 purchase also consumes it. See Samsung's [Purchase Acknowledgment API][ack_api_link] for the batch
 form, and [Get Started with the IAP APIs][iap_api_link] for the access token.
 
-## Subscriptions
+## Sell subscriptions
 
 Sell a subscription with `purchase`, and acknowledge it after you grant it, like a permanent unlock.
 While the subscription is active, `getOwnedProducts` returns it, so your launch reconcile sees it.
@@ -315,7 +315,7 @@ to the new price in Galaxy Store to keep the subscription. Open
 `OwnedProduct.subscriptionDetailLink` to take them there. Open it with an API that takes a string,
 such as url_launcher's `launchUrlString`, because `Uri` changes the case of the link.
 
-### Changing a subscription plan
+### Change a subscription plan
 
 Call `changeSubscriptionPlan` to move a subscriber between two tiers of the same subscription.
 Samsung shows its payment UI, and the `Future` completes when the user leaves it. There is no
@@ -347,7 +347,7 @@ Samsung's guides disagree on downgrades. The IAP Helper guide says a downgrade a
 `instantProratedDate`. `deferred` is the only mode both guides allow for a downgrade, so pass it for
 every downgrade. What Samsung does with an instant downgrade is still to be checked on a device.
 
-Handle the errors as [Handling errors](#handling-errors) describes. After `network` or
+Handle the errors as [Handle errors](#handle-errors) describes. After `network` or
 `purchaseResultUnknown`, check which tier `getOwnedProducts` reports before you retry.
 
 Samsung reports a change it rejects as `general`, and `detailCode` tells why:
@@ -360,12 +360,12 @@ Samsung reports a change it rejects as `general`, and `detailCode` tells why:
 The plugin rejects these arguments with `invalidArgument` before it calls Samsung:
 
 - An empty `fromProductId` or `toProductId`.
-- An obfuscated ID that breaks the [rules above](#obfuscated-ids).
+- An obfuscated ID that breaks the [rules above](#pass-obfuscated-ids).
 
 Samsung's docs describe a change to another tier, but neither they nor the SDK reject the same
 tier. The plugin passes such a change on and reports Samsung's answer.
 
-## Checking promotion eligibility
+## Check promotion eligibility
 
 A subscription can start with a free trial, an introductory price, or both. Call
 `getPromotionEligibility` with the subscription IDs before you show a paywall, and advertise an
@@ -394,12 +394,13 @@ Each `PromotionEligibility` has the `productId` and one `pricing`:
 
 Match the results to your products by `productId`, because their order is not guaranteed. For a
 subscription with both a free trial and an introductory price, Samsung is expected to report
-`freeTrial`. A device run has not confirmed this yet.
+`freeTrial`.
 
 Samsung's [Test subscriptions][test_subs_link] guide says a free trial or introductory price does
 not apply again when the same tester buys the same subscription again. Expect the same for other
 users. After a purchase, and after a re-subscription, `getPromotionEligibility` is expected to report
-`regularPrice` for that subscription. A device run has not confirmed this yet. To test an offer
+`regularPrice` for that subscription. A device run has not confirmed either expectation yet. To
+test an offer
 again, use a different tester, or register a new subscription in Seller Portal.
 
 `getPromotionEligibility` waits up to 30 seconds for Samsung, then throws `network`.
@@ -409,7 +410,7 @@ It throws `storeUnavailable` when Galaxy Store is not usable. The plugin rejects
 - An empty list.
 - An empty ID, or an ID that contains a comma.
 
-## Handling errors
+## Handle errors
 
 Every call throws one type, `SamsungIapException`. Switch over its `kind`. The switch is
 exhaustive, so a kind added in a later version is a compile error instead of a silent fallthrough.
@@ -429,9 +430,16 @@ try {
         SamsungIapErrorKind.purchaseResultUnknown ||
         SamsungIapErrorKind.network:
       // The user may own the product now. Check before anything else.
-      await reconcile(await iap.getOwnedProducts());
-    case SamsungIapErrorKind.busy || SamsungIapErrorKind.initializationFailed:
+      await reconcile(iap, await iap.getOwnedProducts());
+    case SamsungIapErrorKind.busy:
       if (!e.dialogShown) showRetry(); // Stop offering it after a few tries.
+    case SamsungIapErrorKind.initializationFailed:
+      // Retry only 10011. 10000 and 10001 mean an invalid Samsung app.
+      if (e.detailCode != 10011) {
+        hideStore();
+      } else if (!e.dialogShown) {
+        showRetry();
+      }
     case SamsungIapErrorKind.accountNotSignedIn:
       if (!e.dialogShown) showSignInPrompt();
     case SamsungIapErrorKind.storeUpdateRequired:
@@ -482,15 +490,15 @@ plugin maps both to `accountNotSignedIn`.
 - 100010: TEST mode, and the user is not a license tester.
 - 7002: Samsung blocked the purchase as a suspicious transaction.
 - 1005, 1006, 1012 and 1014: Samsung rejected a plan change. See
-  [Changing a subscription plan](#changing-a-subscription-plan).
+  [Change a subscription plan](#change-a-subscription-plan).
 - 9226: `consume` got a missing or invalid purchase ID. See
-  [Consuming and acknowledging](#consuming-and-acknowledging).
+  [Consume or acknowledge a purchase](#consume-or-acknowledge-a-purchase).
 - 9000, 9005, 9013 and 9014: TEST_FAILURE mode, where every call fails on purpose. See
-  [Testing error handling](#testing-error-handling).
+  [Test error handling](#test-error-handling).
 
 Log any other detail code with `details`.
 
-### Testing error handling
+### Test error handling
 
 Initialize with `OperationMode.testFailure` to make every Samsung call fail, so you can test your
 error handling without a broken setup. Each call throws `general` with a detail code. Samsung
@@ -507,9 +515,9 @@ A device run has not confirmed these codes yet. Samsung documents no code for `a
 `changeSubscriptionPlan` or `getPromotionEligibility`. Calls that the plugin refuses before it
 calls Samsung, such as `invalidArgument` or `storeUnavailable`, fail as in the other modes.
 
-## Verifying purchases on your server
+## Verify purchases on your server
 
-The app can be changed by its user, so a server that grants access must check each purchase with
+A user can modify the app, so a server that grants access must check each purchase with
 Samsung. Send the `purchaseId` from the app to your server, and have the server call Samsung's
 [receipt API][verify_link]. The API takes HTTPS only. Samsung's docs show no authorization header.
 
@@ -532,7 +540,7 @@ these dates to the device-local dates on `OwnedProduct`. This package has no bac
 subscription status, use the [Subscription API][subs_api_link], and for server events, use
 [Instant Server Notification][isn_link].
 
-## Using with RevenueCat
+## Use with RevenueCat
 
 [RevenueCat][revenuecat_link]'s Flutter SDK, `purchases_flutter`, has no Galaxy Store option up to
 version 10.14.0. If you use it for App Store and Google Play, use this plugin in the Galaxy build:
@@ -551,21 +559,23 @@ RevenueCat itself supports Galaxy Store in its native Android SDK, from 10.7.0, 
 Native SDK, from 10.3.0. See RevenueCat's [Android installation guide][revenuecat_android_link]. For
 Flutter, Studio Pyro maintains a [fork of `purchases_flutter`][revenuecat_fork_link] with a
 `purchases_flutter_store_galaxy` package that adds RevenueCat's Galaxy support. With it, RevenueCat
-handles Galaxy purchases too, and you do not need this plugin.
+handles Galaxy purchases too, and you do not need this plugin. Depend on the fork with a `git:`
+dependency pinned to a `-galaxy.N` tag, never to a branch.
 
-## Testing your integration
+## Test your integration
 
 - **Unit tests.** `SamsungIap` is a const class with instance methods. Pass it to your code instead
   of creating it there, and pass a mock in tests, for example
   `class MockSamsungIap extends Mock implements SamsungIap {}` with mocktail.
 - **Device tests.** Use a Samsung device, signed in to Galaxy Store as a license tester, and an app
   build in TEST mode whose package name is registered in Seller Portal. On an emulator, Galaxy Store
-  is missing, so every call that reaches Samsung throws `storeUnavailable`.
-- **Error handling.** Use TEST_FAILURE mode, as [Testing error handling](#testing-error-handling)
+  is missing, so every call except `initialize` and `getGalaxyStoreStatus` throws
+  `storeUnavailable`.
+- **Error handling.** Use TEST_FAILURE mode, as [Test error handling](#test-error-handling)
   describes. Also try the cases that need no special mode: close the payment sheet, turn on
   airplane mode, and disable Galaxy Store in the system settings.
-- **Release builds.** Make one purchase with a release build. The plugin ships R8 keep rules for
-  the SDK, and this check confirms them for your app.
+- **Release builds.** Make one purchase with a release build. The plugin ships an R8 keep rule for
+  Samsung's IAP service (AIDL) classes, and this check confirms it for your app.
 - **Before you submit.** Build with `OperationMode.production`, and test it in a Closed Beta, as
   [Set up Seller Portal](#set-up-seller-portal) describes.
 
@@ -603,7 +613,7 @@ MIT. See [LICENSE][license_file_link].
 [license_link]: https://opensource.org/licenses/MIT
 [proration_link]: https://developer.samsung.com/iap/subscription-guide/manage-subscription-plan/proration-modes.html
 [revenuecat_android_link]: https://www.revenuecat.com/docs/getting-started/installation/android
-[revenuecat_fork_link]: https://github.com/Studio-Pyro/purchases-flutter
+[revenuecat_fork_link]: https://github.com/Studio-Pyro/purchases-flutter/tree/10.13.2-galaxy.2
 [revenuecat_link]: https://www.revenuecat.com
 [seller_portal_link]: https://seller.samsungapps.com
 [subs_api_link]: https://developer.samsung.com/iap/api/iap-subscription-api.html
