@@ -134,6 +134,47 @@ class SamsungIap {
     _checkIdBatch('purchase', purchaseIds);
     return await _platform.acknowledge(purchaseIds);
   }
+
+  /// Moves the user's subscription from [fromProductId] to [toProductId], two
+  /// tiers of the same subscription, and returns the purchase of the new
+  /// tier.
+  ///
+  /// Samsung shows its payment UI, and there is no timeout. Pick
+  /// [prorationMode] by the direction of the change. An upgrade, to a tier
+  /// that costs the same or more, can use any mode. A downgrade must use
+  /// [ProrationMode.deferred]. The obfuscated IDs follow the same rules as in
+  /// [purchase].
+  ///
+  /// Throws a [SamsungIapException] with the same kinds as [purchase].
+  /// Samsung reports a change it rejects as [SamsungIapErrorKind.general],
+  /// and [SamsungIapException.detailCode] tells why:
+  ///
+  /// - 1005: the subscription [fromProductId] does not exist.
+  /// - 1006: the user is not subscribed to [fromProductId].
+  /// - 1012: [toProductId] is not a subscription.
+  /// - 1014: a change was already requested.
+  ///
+  /// After a [SamsungIapErrorKind.network] or
+  /// [SamsungIapErrorKind.purchaseResultUnknown] failure, call
+  /// [getOwnedProducts] before you retry: the change may have gone through.
+  Future<SamsungPurchase> changeSubscriptionPlan({
+    required String fromProductId,
+    required String toProductId,
+    required ProrationMode prorationMode,
+    String? obfuscatedAccountId,
+    String? obfuscatedProfileId,
+  }) async {
+    _checkProductId('from product ID', fromProductId);
+    _checkProductId('to product ID', toProductId);
+    _checkObfuscatedIds(obfuscatedAccountId, obfuscatedProfileId);
+    return await _platform.changeSubscriptionPlan(
+      fromProductId: fromProductId,
+      toProductId: toProductId,
+      prorationMode: prorationMode,
+      obfuscatedAccountId: obfuscatedAccountId,
+      obfuscatedProfileId: obfuscatedProfileId,
+    );
+  }
 }
 
 /// Rejects a blank product ID. The SDK refuses an empty one silently, which
