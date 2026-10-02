@@ -22,6 +22,22 @@ class GuardedCall(
     val sdk: (IapHelper) -> Unit,
 )
 
+val productsCall = GuardedCall(
+    "getProductsDetails",
+    OnGetProductsDetailsListener::class.java,
+    sent = null,
+    call = { it.getProductsDetails("") },
+    sdk = { it.getProductsDetails(anyString(), any()) },
+)
+
+val ownedCall = GuardedCall(
+    "getOwnedList",
+    OnGetOwnedListListener::class.java,
+    sent = true,
+    call = { it.getOwnedList(PlatformOwnedProductFilter.ALL) },
+    sdk = { it.getOwnedList(anyString(), any()) },
+)
+
 val promotionCall = GuardedCall(
     "getPromotionEligibility",
     OnGetPromotionEligibilityListener::class.java,
@@ -30,23 +46,7 @@ val promotionCall = GuardedCall(
     sdk = { it.getPromotionEligibility(anyString(), any()) },
 )
 
-val inquiryCalls = listOf(
-    GuardedCall(
-        "getProductsDetails",
-        OnGetProductsDetailsListener::class.java,
-        sent = null,
-        call = { it.getProductsDetails("") },
-        sdk = { it.getProductsDetails(anyString(), any()) },
-    ),
-    GuardedCall(
-        "getOwnedList",
-        OnGetOwnedListListener::class.java,
-        sent = true,
-        call = { it.getOwnedList(PlatformOwnedProductFilter.ALL) },
-        sdk = { it.getOwnedList(anyString(), any()) },
-    ),
-    promotionCall,
-)
+val inquiryCalls = listOf(productsCall, ownedCall, promotionCall)
 
 val consumeCall = GuardedCall(
     "consumePurchasedItems",
