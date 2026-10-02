@@ -121,17 +121,7 @@ void main() {
   test('reports the plan-change detail codes as general', () async {
     for (final detailCode in [1005, 1006, 1012, 1014]) {
       when(() => api.changeSubscriptionPlan(any(), any(), any(), any(), any()))
-          .thenThrow(
-            PlatformException(
-              code: 'sdk',
-              message: 'Samsung says no.',
-              details: {
-                'errorCode': -1002,
-                'errorDetails': 'IS$detailCode/6050/x',
-                'dialogShown': false,
-              },
-            ),
-          );
+          .thenThrow(sdkError(-1002, details: 'IS$detailCode/6050/x'));
 
       await expectLater(
         change(),
