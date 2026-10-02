@@ -76,7 +76,13 @@ class SamsungIapFlutterPlugin(
         requireStore()
         return awaitSdk("startPayment") { done ->
             helper.startPayment(itemId, obfuscatedAccountId, obfuscatedProfileId) { error: ErrorVo?, purchase: PurchaseVo? ->
-                done(error) { purchase!!.toPlatform() }
+                done(error) {
+                    purchase?.toPlatform() ?: throw FlutterError(
+                        "result_unknown",
+                        "startPayment reported success without a purchase.",
+                        "startPayment",
+                    )
+                }
             }
         }
     }

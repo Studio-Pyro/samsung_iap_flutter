@@ -38,7 +38,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
@@ -350,6 +349,20 @@ class SamsungIapFlutterPluginTest {
     }
 
     @Test
+    fun startPaymentReportsASuccessWithoutAPurchaseAsResultUnknown() = runTest {
+        for (error in listOf(errorVo(0), null)) {
+            answer(payment) { payment.callBack(it, error, null) }
+
+            val failure = assertFailsWith<FlutterError> {
+                initializedPlugin().startPayment("coins_100", null, null)
+            }
+
+            assertEquals("result_unknown", failure.code, "error: $error")
+            assertEquals("startPayment", failure.details)
+        }
+    }
+
+    @Test
     fun startPaymentMapsAFalseReturnToNotSent() = runTest {
         doAnswer { false }.`when`(helper).startPayment(anyString(), any(), any(), any())
 
@@ -418,7 +431,7 @@ class SamsungIapFlutterPluginTest {
         runCurrent()
 
         assertTrue(result.isCompleted, "failed without waiting for the timeout")
-        assertIs<NullPointerException>(result.await().exceptionOrNull())
+        assertTrue(result.await().isFailure)
     }
 
     private val guards: Map<String, suspend TestScope.(GuardedCall) -> Unit> = mapOf(

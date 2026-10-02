@@ -112,6 +112,7 @@ void main() {
       'not_sent': SamsungIapErrorKind.busy,
       'store_unavailable': SamsungIapErrorKind.storeUnavailable,
       'not_initialized': SamsungIapErrorKind.notInitialized,
+      'result_unknown': SamsungIapErrorKind.purchaseResultUnknown,
     };
     for (final MapEntry(key: code, value: kind) in kinds.entries) {
       when(() => api.startPayment(any(), any(), any()))
