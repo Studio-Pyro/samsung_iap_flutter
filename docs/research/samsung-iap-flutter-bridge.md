@@ -281,6 +281,18 @@ The SDK sets only three codes itself: 1 (`cancelPurchase` default, and an invali
 
 On a Galaxy S22 (SM-S901B, Android 16, Galaxy Store 4.6.11.4) in TEST and TEST_FAILURE modes, Galaxy Store returned the raw positive server code on the service path. The app saw `errorCode` 9201, 9005 and 9000 with empty details. Galaxy Store's own process logged the detail strings, for example `IS9201/9001/RLgulQFMNH`, `IS9005/6050/xNzpvRlhKZ` and `IS9000/9004/hqaYhProtq`, and the SDK logged `BaseService onEndProcess: 9201`. The payment path returned the documented shape. `changeSubscriptionPlan` gave -1005 with detail 9207. In TEST_FAILURE mode, `getProductsDetails` and `getOwnedList` returned 9201, because the app had no IAP products set up in Seller Portal. Galaxy Store logged `OperationMode: Mode: -1`, which is `OPERATION_MODE_TEST_FAILURE`'s value [AAR], and then `getErrorCodeByMode = [9201, TEST, 6.5.2.002]`. So it got TEST_FAILURE and checked the setup first (**Inference** from one device). [H] does not mention the raw-code shape.
 
+After IAP was set up for the app in Seller Portal, the same device confirmed that order. In TEST_FAILURE mode every service call returned a raw code with empty details, and Galaxy Store logged the matching detail string:
+
+| Call | Raw code | Galaxy Store log |
+|---|---|---|
+| `getProductsDetails` | 9013 | `IS9013/6050/...` |
+| `getOwnedList` | 9000 | `IS9000/6054/...` |
+| `consumePurchasedItems` | 9005 | `IS9005/6050/...` |
+| `acknowledgePurchases` | 9005 | `IS9005/6050/...` |
+| `getPromotionEligibility` | 9000 | `IS9000/6054/...` |
+
+The first three match [H]. [H] documents no code for the last two. In TEST mode after the setup, `getOwnedList` succeeded with an empty list. `getProductsDetails`, for a registered item ID and for all items, returned raw 9207 (`IS9207/9002/...`), which [H] documents as an ID that does not exist in the current operation mode. So 9201 means no IAP setup, and 9207 means the item is not visible to this device and mode yet (**Inference**).
+
 ---
 
 ## 3. Integration requirements
@@ -667,7 +679,7 @@ enum SamsungIapErrorKind {
 final class SamsungIapException implements Exception {
   final SamsungIapErrorKind kind;
   final int? code;          // raw ErrorVo code (null for plugin-originated)
-  final int? detailCode;    // digits before first '/' in errorDetailsString [H], e.g. 9224
+  final int? detailCode;    // digits before first '/' in errorDetailsString [H], e.g. 9224, or the raw server code (§2.8)
   final String message;     // ErrorVo.errorString or plugin message
   final String? details;    // raw errorDetailsString
   final bool dialogShown;   // ErrorVo.isShowDialog(): don't show a second dialog
@@ -693,7 +705,7 @@ final class SamsungIapException implements Exception {
 | `not_sent` | `busy` | The SDK refused to start the call, before any UI, for example while it finishes one that timed out. Retry |
 | `not_initialized` | `notInitialized` | Programmer error. Call `initialize` first |
 | Dart validation | `invalidArgument` | Programmer error |
-| -1002 `IAP_ERROR_COMMON`, any other raw server code | `general` | Switch on `detailCode`: 100010 not a license tester, 7002 suspicious transaction, 1005/1006/1012/1014 plan-change problems, 9226 invalid consume purchase ID, 9000/9005/9013/9014 TEST_FAILURE mode |
+| -1002 `IAP_ERROR_COMMON`, or a raw server code, with a detail code the table in the Mapping paragraph does not claim | `general` | Switch on `detailCode`: 100010 not a license tester, 7002 suspicious transaction, 1005/1006/1012/1014 plan-change problems, 9226 invalid consume purchase ID, 9000/9005/9013/9014 TEST_FAILURE mode |
 | -1004 and any other negative code | `unknown` | Keep `code` for logs |
 
 **Partial failure in consume/ack:** the call-level `ErrorVo` != 0 → throw. Otherwise return a per-item `PurchaseAckResult` list; items can fail individually (status 1–9) even though the call succeeded [H §Notify]. `alreadyProcessed` (4) should count as success for idempotent retry loops (**Inference**).

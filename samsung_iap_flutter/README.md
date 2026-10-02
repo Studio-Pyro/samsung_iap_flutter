@@ -464,16 +464,17 @@ errors and sets `dialogShown`. Show your own message only when `dialogShown` is 
 Samsung reports a server error in one of two shapes. `purchase` and `changeSubscriptionPlan` return
 a negative code, such as -1005, and put the server's detail code in `details`, such as
 `IS9207/6050/...`. The other calls can return the server's code itself, such as 9201, with no
-details. The plugin turns both shapes into the same `kind` and `detailCode`. For a server code,
-`detailCode` is the code, and `code` keeps the number Samsung sent. So -1007 with `IS9201/...` and
-a plain 9201 both become `productNotFound` with `detailCode` 9201.
+details. For such a raw server code, `detailCode` is the code, and `code` keeps the number Samsung
+sent. The plugin maps a raw server code like -1002 with that detail code. So -1002 with
+`IS9201/...`, -1007 with `IS9201/...` and a plain 9201 all become `productNotFound` with
+`detailCode` 9201.
 
 | Kind | Source | What the app does |
 |---|---|---|
 | `userCanceled` | Samsung code 1 | Nothing. The user closed the sheet. Do not log it as a failure. |
-| `alreadyOwned` | -1003, or detail code 9224 | Call `getOwnedProducts`, grant what it returns, and consume or acknowledge it. |
-| `productNotFound` | -1005, -1007, or detail code 9201, 9202 or 9207 | Fix the setup. Check the product ID, the operation mode, the Seller Portal settings and the distribution countries. |
-| `notAvailableInCountry` | -1012, -1013, or detail code 9134 or 9259 | Hide the store UI for this user. |
+| `alreadyOwned` | -1003, or -1002 or a raw server code with detail code 9224 | Call `getOwnedProducts`, grant what it returns, and consume or acknowledge it. |
+| `productNotFound` | -1005, -1007, or -1002 or a raw server code with detail code 9201, 9202 or 9207 | Fix the setup. Check the product ID, the operation mode, the Seller Portal settings and the distribution countries. |
+| `notAvailableInCountry` | -1012, -1013, or -1002 or a raw server code with detail code 9134 or 9259 | Hide the store UI for this user. |
 | `network` | -1008 to -1011, or no answer within 30 seconds | After `purchase` or `changeSubscriptionPlan`, reconcile first, because the user may have paid. Retry only if the user does not own the product. After any other call, retry. |
 | `storeUnavailable` | The plugin, before it calls Samsung | Hide the store UI, or ask the user to install or enable Galaxy Store. `details` names the store status. |
 | `storeUpdateRequired` | -1001, or `acknowledge` on Galaxy Store older than 4.5.90 | Send the user to Galaxy Store to update it, then retry. |
@@ -483,7 +484,7 @@ a plain 9201 both become `productNotFound` with `detailCode` 9201.
 | `invalidArgument` | The plugin, before it calls Samsung | Fix the call. Each method's docs list its rules. |
 | `notInitialized` | The plugin | Call `initialize` first. |
 | `initializationFailed` | -1000 | With `detailCode` 10011, retry a few times with a growing delay. With 10000, the IAP client app is invalid, and with 10001, the Samsung Checkout app is invalid. Do not retry those two. Hide the store UI. |
-| `general` | -1002, or a server code that no other kind claims | Read `detailCode`. See below. |
+| `general` | -1002 or a raw server code with any other detail code | Read `detailCode`. See below. |
 | `unknown` | -1004 and any other negative code | Log `code` and `message`. |
 
 `network` after `consume` or `acknowledge` is safe to retry, even if the first call reached Samsung.
@@ -492,8 +493,9 @@ A purchase that an earlier call handled reports `alreadyProcessed`.
 The 6.5.2 SDK binary defines the signed-out code as -1014. Samsung's docs list it as -1015. The
 plugin maps both to `accountNotSignedIn`.
 
-`general` is Samsung's catch-all. A -1002 or a server code whose detail code names another kind
-gets that kind instead, for example `productNotFound` for 9201. Otherwise `detailCode` tells why:
+`general` is Samsung's catch-all. A -1002 or a raw server code whose detail code names another
+kind gets that kind instead, for example `productNotFound` for 9201. Otherwise `detailCode` tells
+why:
 
 - 100010: TEST mode, and the user is not a license tester.
 - 7002: Samsung blocked the purchase as a suspicious transaction.
@@ -501,7 +503,7 @@ gets that kind instead, for example `productNotFound` for 9201. Otherwise `detai
   [Change a subscription plan](#change-a-subscription-plan).
 - 9226: `consume` got a missing or invalid purchase ID. See
   [Consume or acknowledge a purchase](#consume-or-acknowledge-a-purchase).
-- 9000, 9005, 9013 and 9014: TEST_FAILURE mode, where every call fails on purpose. See
+- 9000, 9005, 9013 and 9014: TEST_FAILURE mode. See
   [Test error handling](#test-error-handling).
 
 Log any other detail code with `details`.
@@ -509,8 +511,8 @@ Log any other detail code with `details`.
 ### Test error handling
 
 Initialize with `OperationMode.testFailure` to make every Samsung call fail, so you can test your
-error handling without a broken setup. Each call throws `general` with a detail code, or
-`productNotFound` when Samsung rejects the product ID first. Samsung documents these codes:
+error handling without a broken setup. Each call throws `general` with a detail code. Samsung
+documents these codes:
 
 | Call | `detailCode` |
 |---|---|
@@ -519,14 +521,15 @@ error handling without a broken setup. Each call throws `general` with a detail 
 | `getProducts` | 9013 |
 | `purchase` | 9014 |
 
-A device run has not confirmed these codes yet. Samsung documents no code for `acknowledge`,
-`changeSubscriptionPlan` or `getPromotionEligibility`.
+A Galaxy S22 returned the documented codes for `getOwnedProducts`, `consume` and `getProducts`.
+Samsung documents no code for `acknowledge`, `changeSubscriptionPlan` or `getPromotionEligibility`.
+On the S22, `acknowledge` returned 9005 and `getPromotionEligibility` returned 9000.
 
 Samsung checks the Seller Portal setup before it applies TEST_FAILURE. Until the app has IAP
-activated and products registered, calls fail with `productNotFound` and `detailCode` 9201 instead.
-In TEST_FAILURE mode, `purchase` shows Samsung's test-mode notice and waits until the user closes
-it. Calls that the plugin refuses before it
-calls Samsung, such as `invalidArgument` or `storeUnavailable`, fail as in the other modes.
+activated and products registered, the calls fail with `productNotFound` and `detailCode` 9201
+instead. In TEST_FAILURE mode, `purchase` shows Samsung's test-mode notice and waits until the user
+closes it. Calls that the plugin refuses before it calls Samsung, such as `invalidArgument` or
+`storeUnavailable`, fail as in the other modes.
 
 ## Verify purchases on your server
 

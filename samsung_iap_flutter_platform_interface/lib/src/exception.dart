@@ -2,9 +2,9 @@
 ///
 /// Samsung reports a server error in one of two shapes. One is a -10xx code
 /// with the server's detail code in [SamsungIapException.details]. The other
-/// is the server's code itself with no details. Both shapes map to the same
-/// kind, so -1007 with `IS9201/...` and a plain 9201 are both
-/// [productNotFound].
+/// is the server's code itself with no details. A raw server code maps like
+/// -1002 with that detail code, so -1002 with `IS9201/...` and a plain 9201
+/// are both [productNotFound].
 ///
 /// Switch over it exhaustively so a new kind is a compile error, not a silent
 /// fallthrough. If [SamsungIapException.dialogShown] is `true`, Samsung has
@@ -14,16 +14,18 @@ enum SamsungIapErrorKind {
   /// nothing and do not log it as an error.
   userCanceled,
 
-  /// The user already owns the product. Samsung reports -1003, or detail
-  /// code 9224. Call `getOwnedProducts`, grant what it returns, and then
-  /// consume or acknowledge it.
+  /// The user already owns the product. Samsung reports -1003, or -1002 or a
+  /// raw server code with detail code 9224. Call `getOwnedProducts`, grant
+  /// what it returns, and then consume or acknowledge it.
   alreadyOwned,
 
   /// The product ID does not exist in the current operation mode, or the app
   /// has no products, or IAP is not activated in Seller Portal.
   ///
-  /// Samsung reports -1005 or -1007, or detail code 9201, 9202 or 9207. With
-  /// 9201, the app has no registered products or IAP is not activated.
+  /// Samsung reports -1005 or -1007, or -1002 or a raw server code with
+  /// detail code 9201, 9202 or 9207. With 9201, the app has no registered
+  /// products or IAP is not activated. With 9207, the product ID does not
+  /// exist in the current operation mode.
   ///
   /// This is a setup problem that the user cannot fix. Check the product ID,
   /// the operation mode, the Seller Portal settings and the distribution
@@ -31,8 +33,8 @@ enum SamsungIapErrorKind {
   productNotFound,
 
   /// The product or IAP itself is not sold in the user's country. Samsung
-  /// reports -1012 or -1013, or detail code 9134 or 9259. Hide the store UI
-  /// for this user.
+  /// reports -1012 or -1013, or -1002 or a raw server code with detail code
+  /// 9134 or 9259. Hide the store UI for this user.
   notAvailableInCountry,
 
   /// A network problem, or no answer from Samsung within 30 seconds.
@@ -91,16 +93,16 @@ enum SamsungIapErrorKind {
   /// is invalid. A retry does not fix those two, so hide the store UI.
   initializationFailed,
 
-  /// Samsung's catch-all error. Samsung reports -1002, or a server code that
-  /// no other kind claims. Switch on [SamsungIapException.detailCode]:
+  /// Samsung's catch-all error. Samsung reports -1002 or a raw server code,
+  /// with a detail code that no other kind claims. Switch on
+  /// [SamsungIapException.detailCode]:
   ///
   /// - 100010: TEST mode, and the user is not a license tester.
   /// - 7002: Samsung blocked the purchase as a suspicious transaction.
   /// - 1005, 1006, 1012 and 1014: Samsung rejected a plan change. See
   ///   `changeSubscriptionPlan`.
   /// - 9226: `consume` got a missing or invalid purchase ID.
-  /// - 9000, 9005, 9013 and 9014: `OperationMode.testFailure`, where every
-  ///   call fails on purpose.
+  /// - 9000, 9005, 9013 and 9014: `OperationMode.testFailure`.
   ///
   /// Log other detail codes with [SamsungIapException.details].
   general,
@@ -133,10 +135,10 @@ final class SamsungIapException implements Exception {
 
   /// Samsung's server detail code.
   ///
-  /// For a -10xx [code], the digits before the first `/` of [details], for
-  /// example `9224` from `IS9224/6050/NwCbCAxypi`. For a positive server
-  /// [code] other than 1, the code itself, because Samsung sends no details
-  /// with it.
+  /// For a negative [code] or 1, the digits before the first `/` of
+  /// [details], for example `9224` from `IS9224/6050/NwCbCAxypi`. For a raw
+  /// server [code], which is positive and not 1, the code itself, because
+  /// Samsung sends no details with it.
   final int? detailCode;
 
   /// A human-readable description for logs. Not for end users.
