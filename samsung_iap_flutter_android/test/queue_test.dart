@@ -57,6 +57,20 @@ final queuedCalls = <String, QueuedCall>{
         }),
     call: (plugin) => plugin.acknowledge(['a1b2c3']),
   ),
+  'changeSubscriptionPlan': (
+    stub: (api, sent) =>
+        when(
+          () => api.changeSubscriptionPlan(any(), any(), any(), any(), any()),
+        ).thenAnswer((_) async {
+          sent();
+          return purchaseWire();
+        }),
+    call: (plugin) => plugin.changeSubscriptionPlan(
+      fromProductId: 'monthly',
+      toProductId: 'monthly_premium',
+      prorationMode: ProrationMode.instantProratedDate,
+    ),
+  ),
 };
 
 void main() {

@@ -28,6 +28,18 @@ PlatformOwnedProductFilter ownedProductFilterToPlatform(
   OwnedProductFilter.all => PlatformOwnedProductFilter.all,
 };
 
+/// Converts the public proration mode into its wire form.
+PlatformProrationMode prorationModeToPlatform(ProrationMode mode) =>
+    switch (mode) {
+      ProrationMode.instantProratedDate =>
+        PlatformProrationMode.instantProratedDate,
+      ProrationMode.instantProratedCharge =>
+        PlatformProrationMode.instantProratedCharge,
+      ProrationMode.instantNoProration =>
+        PlatformProrationMode.instantNoProration,
+      ProrationMode.deferred => PlatformProrationMode.deferred,
+    };
+
 /// Converts the wire mirror of `OwnedProductVo` into the public model.
 OwnedProduct ownedProductFromPlatform(PlatformOwnedProduct p) => OwnedProduct(
   productId: p.itemId,

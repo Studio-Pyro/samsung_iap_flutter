@@ -83,6 +83,25 @@ class SamsungIapFlutterAndroid extends SamsungIapFlutterPlatform {
         return results.map(ackResultFromPlatform).toList();
       });
 
+  @override
+  Future<SamsungPurchase> changeSubscriptionPlan({
+    required String fromProductId,
+    required String toProductId,
+    required ProrationMode prorationMode,
+    String? obfuscatedAccountId,
+    String? obfuscatedProfileId,
+  }) => _enqueue(
+    () async => purchaseFromPlatform(
+      await _api.changeSubscriptionPlan(
+        fromProductId,
+        toProductId,
+        prorationModeToPlatform(prorationMode),
+        obfuscatedAccountId,
+        obfuscatedProfileId,
+      ),
+    ),
+  );
+
   /// Runs [call] after every earlier call has settled, so a failure never
   /// blocks the calls behind it.
   Future<T> _enqueue<T>(Future<T> Function() call) {

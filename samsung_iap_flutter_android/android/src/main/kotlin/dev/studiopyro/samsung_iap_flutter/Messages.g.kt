@@ -236,6 +236,19 @@ enum class PlatformOwnedProductFilter(val raw: Int) {
   }
 }
 
+enum class PlatformProrationMode(val raw: Int) {
+  INSTANT_PRORATED_DATE(0),
+  INSTANT_PRORATED_CHARGE(1),
+  INSTANT_NO_PRORATION(2),
+  DEFERRED(3);
+
+  companion object {
+    fun ofRaw(raw: Int): PlatformProrationMode? {
+      return values().firstOrNull { it.raw == raw }
+    }
+  }
+}
+
 /**
  * `ProductVo` field for field. Kotlin sends a missing string as `""` and
  * Dart does all interpretation.
@@ -698,26 +711,31 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
         }
       }
       132.toByte() -> {
-        return (readValue(buffer) as? List<Any?>)?.let {
-          PlatformProduct.fromList(it)
+        return (readValue(buffer) as Long?)?.let {
+          PlatformProrationMode.ofRaw(it.toInt())
         }
       }
       133.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          PlatformSubscriptionPriceChange.fromList(it)
+          PlatformProduct.fromList(it)
         }
       }
       134.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          PlatformOwnedProduct.fromList(it)
+          PlatformSubscriptionPriceChange.fromList(it)
         }
       }
       135.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          PlatformPurchase.fromList(it)
+          PlatformOwnedProduct.fromList(it)
         }
       }
       136.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          PlatformPurchase.fromList(it)
+        }
+      }
+      137.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           PlatformAckResult.fromList(it)
         }
@@ -739,24 +757,28 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
         stream.write(131)
         writeValue(stream, value.raw.toLong())
       }
-      is PlatformProduct -> {
+      is PlatformProrationMode -> {
         stream.write(132)
-        writeValue(stream, value.toList())
+        writeValue(stream, value.raw.toLong())
       }
-      is PlatformSubscriptionPriceChange -> {
+      is PlatformProduct -> {
         stream.write(133)
         writeValue(stream, value.toList())
       }
-      is PlatformOwnedProduct -> {
+      is PlatformSubscriptionPriceChange -> {
         stream.write(134)
         writeValue(stream, value.toList())
       }
-      is PlatformPurchase -> {
+      is PlatformOwnedProduct -> {
         stream.write(135)
         writeValue(stream, value.toList())
       }
-      is PlatformAckResult -> {
+      is PlatformPurchase -> {
         stream.write(136)
+        writeValue(stream, value.toList())
+      }
+      is PlatformAckResult -> {
+        stream.write(137)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -781,6 +803,8 @@ interface SamsungIapHostApi {
    * `store_update_required` on a Galaxy Store that cannot acknowledge.
    */
   suspend fun acknowledgePurchases(purchaseIds: String): List<PlatformAckResult>
+  /** Completes when the user leaves Samsung's plan-change UI. No timeout. */
+  suspend fun changeSubscriptionPlan(oldItemId: String, newItemId: String, prorationMode: PlatformProrationMode, obfuscatedAccountId: String?, obfuscatedProfileId: String?): PlatformPurchase
 
   companion object {
     /** The codec used by SamsungIapHostApi. */
@@ -912,6 +936,29 @@ interface SamsungIapHostApi {
             CoroutineScope(Dispatchers.Main).launch {
               val wrapped: List<Any?> = try {
                 listOf(api.acknowledgePurchases(purchaseIdsArg))
+              } catch (exception: Throwable) {
+                MessagesPigeonUtils.wrapError(exception)
+              }
+              reply.reply(wrapped)
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.samsung_iap_flutter_android.SamsungIapHostApi.changeSubscriptionPlan$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val oldItemIdArg = args[0] as String
+            val newItemIdArg = args[1] as String
+            val prorationModeArg = args[2] as PlatformProrationMode
+            val obfuscatedAccountIdArg = args[3] as String?
+            val obfuscatedProfileIdArg = args[4] as String?
+            CoroutineScope(Dispatchers.Main).launch {
+              val wrapped: List<Any?> = try {
+                listOf(api.changeSubscriptionPlan(oldItemIdArg, newItemIdArg, prorationModeArg, obfuscatedAccountIdArg, obfuscatedProfileIdArg))
               } catch (exception: Throwable) {
                 MessagesPigeonUtils.wrapError(exception)
               }

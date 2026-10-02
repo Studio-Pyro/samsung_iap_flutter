@@ -104,6 +104,13 @@ enum PlatformStoreStatus { available, notInstalled, disabled, invalid }
 
 enum PlatformOwnedProductFilter { item, subscription, all }
 
+enum PlatformProrationMode {
+  instantProratedDate,
+  instantProratedCharge,
+  instantNoProration,
+  deferred,
+}
+
 /// `ProductVo` field for field. Kotlin sends a missing string as `""` and
 /// Dart does all interpretation.
 class PlatformProduct {
@@ -722,20 +729,23 @@ class _PigeonCodec extends StandardMessageCodec {
     } else if (value is PlatformOwnedProductFilter) {
       buffer.putUint8(131);
       writeValue(buffer, value.index);
-    } else if (value is PlatformProduct) {
+    } else if (value is PlatformProrationMode) {
       buffer.putUint8(132);
-      writeValue(buffer, value.encode());
-    } else if (value is PlatformSubscriptionPriceChange) {
+      writeValue(buffer, value.index);
+    } else if (value is PlatformProduct) {
       buffer.putUint8(133);
       writeValue(buffer, value.encode());
-    } else if (value is PlatformOwnedProduct) {
+    } else if (value is PlatformSubscriptionPriceChange) {
       buffer.putUint8(134);
       writeValue(buffer, value.encode());
-    } else if (value is PlatformPurchase) {
+    } else if (value is PlatformOwnedProduct) {
       buffer.putUint8(135);
       writeValue(buffer, value.encode());
-    } else if (value is PlatformAckResult) {
+    } else if (value is PlatformPurchase) {
       buffer.putUint8(136);
+      writeValue(buffer, value.encode());
+    } else if (value is PlatformAckResult) {
+      buffer.putUint8(137);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -755,14 +765,17 @@ class _PigeonCodec extends StandardMessageCodec {
         final value = readValue(buffer) as int?;
         return value == null ? null : PlatformOwnedProductFilter.values[value];
       case 132:
-        return PlatformProduct.decode(readValue(buffer)!);
+        final value = readValue(buffer) as int?;
+        return value == null ? null : PlatformProrationMode.values[value];
       case 133:
-        return PlatformSubscriptionPriceChange.decode(readValue(buffer)!);
+        return PlatformProduct.decode(readValue(buffer)!);
       case 134:
-        return PlatformOwnedProduct.decode(readValue(buffer)!);
+        return PlatformSubscriptionPriceChange.decode(readValue(buffer)!);
       case 135:
-        return PlatformPurchase.decode(readValue(buffer)!);
+        return PlatformOwnedProduct.decode(readValue(buffer)!);
       case 136:
+        return PlatformPurchase.decode(readValue(buffer)!);
+      case 137:
         return PlatformAckResult.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -948,5 +961,39 @@ class SamsungIapHostApi {
       isNullValid: false,
     );
     return (pigeonVar_replyValue! as List<Object?>).cast<PlatformAckResult>();
+  }
+
+  /// Completes when the user leaves Samsung's plan-change UI. No timeout.
+  Future<PlatformPurchase> changeSubscriptionPlan(
+    String oldItemId,
+    String newItemId,
+    PlatformProrationMode prorationMode,
+    String? obfuscatedAccountId,
+    String? obfuscatedProfileId,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.samsung_iap_flutter_android.SamsungIapHostApi.changeSubscriptionPlan$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[
+        oldItemId,
+        newItemId,
+        prorationMode,
+        obfuscatedAccountId,
+        obfuscatedProfileId,
+      ],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as PlatformPurchase;
   }
 }

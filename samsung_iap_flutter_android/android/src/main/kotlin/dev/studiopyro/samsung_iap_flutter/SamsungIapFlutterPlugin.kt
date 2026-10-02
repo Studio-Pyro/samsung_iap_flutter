@@ -79,13 +79,29 @@ class SamsungIapFlutterPlugin(
         requireStore()
         return awaitSdk("startPayment") { done ->
             helper.startPayment(itemId, obfuscatedAccountId, obfuscatedProfileId) { error: ErrorVo?, purchase: PurchaseVo? ->
-                done(error) {
-                    purchase?.toPlatform() ?: throw FlutterError(
-                        "result_unknown",
-                        "startPayment reported success without a purchase.",
-                        "startPayment",
-                    )
-                }
+                done(error) { purchase.toPlatformOrUnknown("startPayment") }
+            }
+        }
+    }
+
+    override suspend fun changeSubscriptionPlan(
+        oldItemId: String,
+        newItemId: String,
+        prorationMode: PlatformProrationMode,
+        obfuscatedAccountId: String?,
+        obfuscatedProfileId: String?,
+    ): PlatformPurchase {
+        val helper = requireHelper()
+        requireStore()
+        return awaitSdk("changeSubscriptionPlan") { done ->
+            helper.changeSubscriptionPlan(
+                oldItemId,
+                newItemId,
+                prorationMode.toSdk(),
+                obfuscatedAccountId,
+                obfuscatedProfileId,
+            ) { error: ErrorVo?, purchase: PurchaseVo? ->
+                done(error) { purchase.toPlatformOrUnknown("changeSubscriptionPlan") }
             }
         }
     }
@@ -206,6 +222,13 @@ private fun PlatformOwnedProductFilter.toSdk(): String = when (this) {
     PlatformOwnedProductFilter.ALL -> HelperDefine.PRODUCT_TYPE_ALL
 }
 
+private fun PlatformProrationMode.toSdk(): HelperDefine.ProrationMode = when (this) {
+    PlatformProrationMode.INSTANT_PRORATED_DATE -> HelperDefine.ProrationMode.INSTANT_PRORATED_DATE
+    PlatformProrationMode.INSTANT_PRORATED_CHARGE -> HelperDefine.ProrationMode.INSTANT_PRORATED_CHARGE
+    PlatformProrationMode.INSTANT_NO_PRORATION -> HelperDefine.ProrationMode.INSTANT_NO_PRORATION
+    PlatformProrationMode.DEFERRED -> HelperDefine.ProrationMode.DEFERRED
+}
+
 private fun ErrorVo.toFlutterError() = FlutterError(
     "sdk",
     errorString,
@@ -274,6 +297,13 @@ private fun PurchaseVo.toPlatform() = PlatformPurchase(
     obfuscatedAccountId = obfuscatedAccountId.orEmpty(),
     obfuscatedProfileId = obfuscatedProfileId.orEmpty(),
     json = jsonString.orEmpty(),
+)
+
+/** A payment that reports success without a purchase may still have charged the user. */
+private fun PurchaseVo?.toPlatformOrUnknown(name: String) = this?.toPlatform() ?: throw FlutterError(
+    "result_unknown",
+    "$name reported success without a purchase.",
+    name,
 )
 
 private fun ConsumeVo.toPlatform() = PlatformAckResult(

@@ -11,6 +11,7 @@ class MockHostApi extends Mock implements SamsungIapHostApi;
 (MockHostApi, SamsungIapFlutterAndroid) newPlugin() {
   registerFallbackValue(PlatformOperationMode.production);
   registerFallbackValue(PlatformOwnedProductFilter.all);
+  registerFallbackValue(PlatformProrationMode.deferred);
   final api = MockHostApi();
   when(() => api.initialize(any(), any())).thenAnswer((_) async {});
   return (api, SamsungIapFlutterAndroid(api: api));
