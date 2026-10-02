@@ -7,8 +7,9 @@ Because `samsung_iap_flutter` is a [federated plugin][federated_plugins_link], e
 published on its own, and the packages depend on each other by version. Each `pubspec.yaml` names
 its sibling packages by version, for example `samsung_iap_flutter_platform_interface: ^0.1.0`. A
 committed `pubspec_overrides.yaml` in the android package, the app-facing package and the example
-points those dependencies at the sources in this repository. pub leaves `pubspec_overrides.yaml` out
-of a published package, so you replace and restore nothing when you publish.
+points those dependencies at the sources in this repository. pub leaves the package's own
+`pubspec_overrides.yaml` out of the archive, and `samsung_iap_flutter/.pubignore` leaves out the
+example's. You replace and restore nothing when you publish.
 
 ## Packages
 
@@ -50,8 +51,8 @@ Do this once, before the first publish. Use one Google account for every step.
 cd samsung_iap_flutter_platform_interface && flutter pub publish --dry-run
 ```
 
-The dry run of the android and app-facing packages reports one hint, that non-dev dependencies are
-overridden in `pubspec_overrides.yaml`. That hint is expected. Resolve every other warning or error
+The dry run of the android and app-facing packages reports that non-dev dependencies are
+overridden in `pubspec_overrides.yaml`, once for each overridden package. That hint is expected. Resolve every other warning or error
 before you continue.
 
 ## Publishing order

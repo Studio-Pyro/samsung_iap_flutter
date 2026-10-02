@@ -40,8 +40,9 @@ with sources.
 Each pubspec names its sibling packages by version, as pub.dev requires. The committed
 `pubspec_overrides.yaml` files in `samsung_iap_flutter_android`, `samsung_iap_flutter` and
 `samsung_iap_flutter/example` point those dependencies at the sources in this repository. Run
-`flutter pub get` in a package, and it builds against this checkout. pub leaves
-`pubspec_overrides.yaml` out of a published package.
+`flutter pub get` in a package, and it builds against this checkout. pub leaves a package's own
+`pubspec_overrides.yaml` out of the archive, and `samsung_iap_flutter/.pubignore` leaves out the
+example's.
 
 ## CI
 
