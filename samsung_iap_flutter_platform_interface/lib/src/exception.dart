@@ -4,8 +4,8 @@
 /// fallthrough. If [SamsungIapException.dialogShown] is `true`, Samsung has
 /// already shown the user an error, so do not show another.
 enum SamsungIapErrorKind {
-  /// The user closed the payment sheet. Not a failure. Show nothing, and do
-  /// not log it as an error.
+  /// The user closed the payment sheet. This is not a failure, so show
+  /// nothing and do not log it as an error.
   userCanceled,
 
   /// The user already owns the product. Call `getOwnedProducts`, grant what
@@ -15,8 +15,8 @@ enum SamsungIapErrorKind {
   /// The product ID does not exist in the current operation mode, or the app
   /// has no products, or IAP is not activated in Seller Portal.
   ///
-  /// A setup problem, not one the user can fix. Check the product ID, the
-  /// operation mode, the Seller Portal settings and the distribution
+  /// This is a setup problem that the user cannot fix. Check the product ID,
+  /// the operation mode, the Seller Portal settings and the distribution
   /// countries.
   productNotFound,
 
@@ -34,6 +34,7 @@ enum SamsungIapErrorKind {
   network,
 
   /// Galaxy Store is missing, disabled or not genuine.
+  ///
   /// [SamsungIapException.details] names the store status. Hide the store UI,
   /// or ask the user to install or enable Galaxy Store.
   storeUnavailable,
@@ -57,19 +58,26 @@ enum SamsungIapErrorKind {
   /// Another Samsung IAP call was running, or Samsung is still finishing a
   /// call that timed out.
   ///
-  /// Safe to retry after a short wait. Samsung refused the call before it
-  /// showed any UI, so nothing was charged.
+  /// Samsung refused the call before it showed any UI, so nothing was
+  /// charged. Retry a few times with a growing delay. Samsung also refuses
+  /// some invalid input this way, so stop retrying if `busy` persists, and
+  /// log the call.
   busy,
 
-  /// The plugin rejected an argument before calling Samsung. A bug in the
-  /// app. Fix the call.
+  /// The plugin rejected an argument before calling Samsung. This is a bug
+  /// in the app, so fix the call.
   invalidArgument,
 
-  /// The call was made before `initialize`. A bug in the app. Call
-  /// `initialize` first.
+  /// The call was made before `initialize`. This is a bug in the app, so
+  /// call `initialize` first.
   notInitialized,
 
-  /// Samsung IAP failed to initialize. Safe to retry.
+  /// Samsung IAP failed to initialize.
+  ///
+  /// Read [SamsungIapException.detailCode]. With 10011, Samsung's service
+  /// failed to start, so retry a few times with a growing delay. With 10000,
+  /// the IAP client app is invalid, and with 10001, the Samsung Checkout app
+  /// is invalid. A retry does not fix those two, so hide the store UI.
   initializationFailed,
 
   /// Samsung's catch-all error. Switch on [SamsungIapException.detailCode]:
@@ -85,8 +93,8 @@ enum SamsungIapErrorKind {
   /// Log other detail codes with [SamsungIapException.details].
   general,
 
-  /// Anything else. Log [SamsungIapException.code] and
-  /// [SamsungIapException.message].
+  /// Samsung or the bridge reported an error this plugin does not know. Log
+  /// [SamsungIapException.code] and [SamsungIapException.message].
   unknown,
 }
 
