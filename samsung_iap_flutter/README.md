@@ -206,9 +206,9 @@ tier. The plugin passes such a change on and reports Samsung's answer.
 
 ## Checking promotion eligibility
 
-A subscription can start with a free trial or an introductory price. Samsung gives each user these
-offers once per subscription. Call `getPromotionEligibility` with the subscription IDs before you
-show a paywall, and advertise an offer only when Samsung reports it for that user.
+A subscription can start with a free trial, an introductory price, or both. Call
+`getPromotionEligibility` with the subscription IDs before you show a paywall, and advertise an
+offer only when Samsung reports it for that user.
 
 ```dart
 final eligibility = await iap.getPromotionEligibility(['monthly', 'yearly']);
@@ -224,22 +224,24 @@ for (final e in eligibility) {
 
 Each `PromotionEligibility` has the `productId` and one `pricing`:
 
-| `pricing` | The user would get | Details on `SamsungProduct` |
+| `pricing` | The user would get | Where to read the details |
 |---|---|---|
-| `freeTrial` | The free trial | `freeTrialDays` |
-| `tieredPrice` | The introductory price | `introductoryOffer` |
-| `regularPrice` | The regular price, with no offer | `formattedPrice` |
-| `unknown` | A value this plugin version does not know | `rawJson` of the eligibility |
+| `freeTrial` | The free trial | `SamsungProduct.freeTrialDays` |
+| `tieredPrice` | The introductory price | `SamsungProduct.introductoryOffer` |
+| `regularPrice` | The regular price, with no offer | `SamsungProduct.formattedPrice` |
+| `unknown` | A value this plugin version does not know | `PromotionEligibility.rawJson` |
 
-Match the results to your products by `productId`, because their order is not guaranteed.
+Match the results to your products by `productId`, because their order is not guaranteed. For a
+subscription with both a free trial and an introductory price, Samsung is expected to report
+`freeTrial`. A device run has not confirmed this yet.
 
-The free trial and the introductory price do not apply again. After a user subscribes, Samsung
-reports `regularPrice` for that subscription, also when the user subscribes again after cancelling.
-This includes license testers. To test an offer again, use a different tester, or register a new
-subscription in Seller Portal. See Samsung's
-[Test subscriptions][test_subs_link] guide.
+Samsung's [Test subscriptions][test_subs_link] guide says a free trial or introductory price does
+not apply again when the same tester buys the same subscription again. Expect the same for other
+users. After a purchase, and after a re-subscription, `getPromotionEligibility` is expected to report
+`regularPrice` for that subscription. A device run has not confirmed this yet. To test an offer
+again, use a different tester, or register a new subscription in Seller Portal.
 
-The call runs like `getProducts`. It waits up to 30 seconds for Samsung, then throws `network`.
+`getPromotionEligibility` waits up to 30 seconds for Samsung, then throws `network`.
 It throws `storeUnavailable` when Galaxy Store is not usable. The plugin rejects these arguments with
 `invalidArgument` before it calls Samsung:
 

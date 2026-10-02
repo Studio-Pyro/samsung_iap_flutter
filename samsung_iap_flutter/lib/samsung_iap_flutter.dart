@@ -183,10 +183,9 @@ class SamsungIap {
   /// signed-in user on subscribing now: a free trial, the introductory price,
   /// or the regular price. Use it to advertise only offers the user can get.
   ///
-  /// Samsung gives each user a subscription's free trial and introductory
-  /// price once, so a user who has subscribed before gets
-  /// [PromotionPricing.regularPrice]. Match the results to your products by
-  /// [PromotionEligibility.productId]. Their order is not guaranteed.
+  /// A user who has subscribed before gets [PromotionPricing.regularPrice].
+  /// Match the results to your products by [PromotionEligibility.productId].
+  /// Their order is not guaranteed.
   ///
   /// Throws a [SamsungIapException] of kind
   /// [SamsungIapErrorKind.invalidArgument] for an empty list, an empty ID or

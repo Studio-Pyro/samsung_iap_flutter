@@ -173,10 +173,6 @@ enum ProrationMode {
 }
 
 /// The offer Samsung would give the user on subscribing now.
-///
-/// Samsung gives each user a subscription's free trial and introductory price
-/// once. After the user has subscribed, Samsung reports [regularPrice], also
-/// when the user subscribes again after cancelling.
 enum PromotionPricing {
   /// The free trial, `SamsungProduct.freeTrialDays` long.
   freeTrial,
