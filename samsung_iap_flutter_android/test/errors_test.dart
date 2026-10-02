@@ -95,6 +95,49 @@ void main() {
     }
   });
 
+  test('maps both shapes of a Samsung server error to one model', () async {
+    // The service path passes Galaxy Store's raw server code and no details.
+    // The payment path passes a -10xx code with the server code in details.
+    // The first four rows are what a Galaxy S22 with Galaxy Store 4.6.11.4
+    // returned in TEST and TEST_FAILURE modes.
+    final rows = <(int, String?), (SamsungIapErrorKind, int?)>{
+      (9201, ''): (SamsungIapErrorKind.productNotFound, 9201),
+      (9005, ''): (SamsungIapErrorKind.general, 9005),
+      (9000, ''): (SamsungIapErrorKind.general, 9000),
+      (-1005, 'IS9207/6050/x'): (SamsungIapErrorKind.productNotFound, 9207),
+      (-1002, 'IS9201/9001/RLgulQFMNH'): (
+        SamsungIapErrorKind.productNotFound,
+        9201,
+      ),
+      (-1007, 'IS9201/9001/x'): (SamsungIapErrorKind.productNotFound, 9201),
+      (9202, null): (SamsungIapErrorKind.productNotFound, 9202),
+      (9207, ''): (SamsungIapErrorKind.productNotFound, 9207),
+      (9224, ''): (SamsungIapErrorKind.alreadyOwned, 9224),
+      (-1002, 'IS9224/6050/x'): (SamsungIapErrorKind.alreadyOwned, 9224),
+      (9134, ''): (SamsungIapErrorKind.notAvailableInCountry, 9134),
+      (9259, ''): (SamsungIapErrorKind.notAvailableInCountry, 9259),
+      (-1002, 'IS9259/x'): (SamsungIapErrorKind.notAvailableInCountry, 9259),
+      (100010, ''): (SamsungIapErrorKind.general, 100010),
+      (7002, 'IS1/x'): (SamsungIapErrorKind.general, 7002),
+      (2, ''): (SamsungIapErrorKind.general, 2),
+      (-1002, 'IS9000/9004/hqaYhProtq'): (SamsungIapErrorKind.general, 9000),
+      (-1005, 'IS9224/x'): (SamsungIapErrorKind.productNotFound, 9224),
+      (1, 'IS9201/x'): (SamsungIapErrorKind.userCanceled, 9201),
+      (1, ''): (SamsungIapErrorKind.userCanceled, null),
+      (-9999, 'IS9201/x'): (SamsungIapErrorKind.unknown, 9201),
+    };
+    for (final MapEntry(key: (code, details), value: (kind, detailCode))
+        in rows.entries) {
+      final e = await failWith(sdkError(code, details: details));
+      final reason = '$code $details';
+
+      expect(e.kind, kind, reason: reason);
+      expect(e.code, code, reason: reason);
+      expect(e.detailCode, detailCode, reason: reason);
+      expect(e.details, details, reason: reason);
+    }
+  });
+
   test('maps the bridge codes to their kinds', () async {
     final kinds = {
       'not_sent': SamsungIapErrorKind.busy,
