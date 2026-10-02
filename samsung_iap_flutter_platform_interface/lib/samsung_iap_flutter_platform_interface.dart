@@ -1,9 +1,11 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:samsung_iap_flutter_platform_interface/src/ack_result.dart';
 import 'package:samsung_iap_flutter_platform_interface/src/enums.dart';
 import 'package:samsung_iap_flutter_platform_interface/src/owned_product.dart';
 import 'package:samsung_iap_flutter_platform_interface/src/product.dart';
 import 'package:samsung_iap_flutter_platform_interface/src/purchase.dart';
 
+export 'src/ack_result.dart';
 export 'src/enums.dart';
 export 'src/exception.dart';
 export 'src/owned_product.dart';
@@ -81,6 +83,22 @@ abstract class SamsungIapFlutterPlatform extends PlatformInterface {
     String? obfuscatedProfileId,
   }) {
     throw UnimplementedError('purchase() has not been implemented.');
+  }
+
+  /// Consumes the purchases with [purchaseIds] so they can be bought again,
+  /// and returns one result per purchase.
+  ///
+  /// The caller has already validated the IDs.
+  Future<List<PurchaseAckResult>> consume(List<String> purchaseIds) {
+    throw UnimplementedError('consume() has not been implemented.');
+  }
+
+  /// Acknowledges the purchases with [purchaseIds] without consuming them,
+  /// and returns one result per purchase.
+  ///
+  /// The caller has already validated the IDs.
+  Future<List<PurchaseAckResult>> acknowledge(List<String> purchaseIds) {
+    throw UnimplementedError('acknowledge() has not been implemented.');
   }
 }
 

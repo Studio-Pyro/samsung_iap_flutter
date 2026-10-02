@@ -19,7 +19,9 @@ enum SamsungIapErrorKind {
 
   /// A network problem, or no answer from Samsung within 30 seconds.
   ///
-  /// An inquiry is safe to retry. A purchase may have gone through, so
+  /// An inquiry, consume or acknowledge is safe to retry. A consume or
+  /// acknowledge that went through reports `AckStatus.alreadyProcessed` on
+  /// the retry. A purchase may have gone through, so
   /// reconcile owned products first and retry only if the product is not
   /// owned.
   network,
