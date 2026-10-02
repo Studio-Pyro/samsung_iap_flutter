@@ -399,11 +399,12 @@ class SamsungIapFlutterPluginTest : PluginTestBase() {
     }
 
     @Test
-    fun acknowledgePurchasesChecksTheGalaxyStoreVersionLikeTheSdk() = runTest {
+    fun onlyAcknowledgeChecksTheGalaxyStoreVersionLikeTheSdk() = runTest {
         mockStatic(Log::class.java).use {
             for ((versionCode, sent) in mapOf(459_000_999 to false, 459_001_000 to true, 500_000_000 to true)) {
                 reset(helper)
                 doAnswer { true }.`when`(helper).acknowledgePurchases(anyString(), any())
+                doAnswer { true }.`when`(helper).consumePurchasedItems(anyString(), any())
                 val packageInfo = mock(PackageInfo::class.java).also {
                     @Suppress("DEPRECATION")
                     it.versionCode = versionCode
@@ -417,6 +418,11 @@ class SamsungIapFlutterPluginTest : PluginTestBase() {
                     onAttachedToEngine(binding(context))
                     initialize(PlatformOperationMode.TEST, showErrorDialog = false)
                 }
+
+                val consumed = async { runCatching { plugin.consumePurchasedItems("a1b2c3") } }
+                runCurrent()
+                verify(helper).consumePurchasedItems(eq("a1b2c3"), any())
+                consumed.cancel()
 
                 val result = async { runCatching { plugin.acknowledgePurchases("a1b2c3") } }
                 runCurrent()
