@@ -31,7 +31,10 @@ void main() {
   late _MockPlatform platform;
   const iap = SamsungIap();
 
-  setUpAll(() => registerFallbackValue(OperationMode.production));
+  setUpAll(() {
+    registerFallbackValue(OperationMode.production);
+    registerFallbackValue(OwnedProductFilter.all);
+  });
 
   setUp(() {
     platform = _MockPlatform();
@@ -115,6 +118,45 @@ void main() {
         );
       }
       verifyNever(() => platform.getProducts(any()));
+    });
+  });
+
+  group('getOwnedProducts', () {
+    const owned = OwnedProduct(
+      productId: 'coins_100',
+      name: '100 coins',
+      purchaseId: 'a1b2c3',
+      paymentId: 'TPMTID20260101',
+      type: SamsungProductType.item,
+      purchaseDate: null,
+      subscriptionEndDate: null,
+      acknowledgedStatus: AcknowledgedStatus.notAcknowledged,
+      priceChange: null,
+      obfuscatedAccountId: null,
+      obfuscatedProfileId: null,
+      price: 0.99,
+      formattedPrice: '£0.99',
+      currencyCode: 'GBP',
+      rawJson: '{}',
+    );
+
+    setUp(() {
+      when(() => platform.getOwnedProducts(any()))
+          .thenAnswer((_) async => [owned]);
+    });
+
+    test('asks for every owned product by default', () async {
+      expect(await iap.getOwnedProducts(), [owned]);
+
+      verify(() => platform.getOwnedProducts(OwnedProductFilter.all)).called(1);
+    });
+
+    test('passes the filter', () async {
+      for (final filter in OwnedProductFilter.values) {
+        await iap.getOwnedProducts(filter: filter);
+
+        verify(() => platform.getOwnedProducts(filter)).called(1);
+      }
     });
   });
 }

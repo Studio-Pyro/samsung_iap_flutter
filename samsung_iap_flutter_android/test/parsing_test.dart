@@ -64,6 +64,41 @@ void main() {
     );
   });
 
+  test('nonEmptyOrNull', () {
+    expect(nonEmptyOrNull(''), isNull);
+    expect(nonEmptyOrNull(' '), ' ');
+    expect(nonEmptyOrNull('account'), 'account');
+  });
+
+  test('parseAcknowledgedStatus', () {
+    final cases = {
+      'UNSUPPORTED': AcknowledgedStatus.unsupported,
+      'NOT_ACKNOWLEDGED': AcknowledgedStatus.notAcknowledged,
+      'ACKNOWLEDGED': AcknowledgedStatus.acknowledged,
+      '': AcknowledgedStatus.unknown,
+      'Y': AcknowledgedStatus.unknown,
+      'acknowledged': AcknowledgedStatus.unknown,
+    };
+    for (final MapEntry(key: input, value: expected) in cases.entries) {
+      expect(parseAcknowledgedStatus(input), expected, reason: input);
+    }
+  });
+
+  test('parsePriceChangeMode', () {
+    final cases = {
+      'PRICE_INCREASE_USER_AGREEMENT_REQUIRED':
+          PriceChangeMode.increaseConsentRequired,
+      'PRICE_INCREASE_NO_USER_AGREEMENT_REQUIRED':
+          PriceChangeMode.increaseNoConsentRequired,
+      'PRICE_DECREASE': PriceChangeMode.decrease,
+      '': PriceChangeMode.unknown,
+      '0': PriceChangeMode.unknown,
+    };
+    for (final MapEntry(key: input, value: expected) in cases.entries) {
+      expect(parsePriceChangeMode(input), expected, reason: input);
+    }
+  });
+
   test('parseProductType', () {
     final cases = {
       'item': SamsungProductType.item,

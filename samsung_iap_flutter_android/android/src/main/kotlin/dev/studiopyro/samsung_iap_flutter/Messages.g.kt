@@ -224,6 +224,18 @@ enum class PlatformStoreStatus(val raw: Int) {
   }
 }
 
+enum class PlatformOwnedProductFilter(val raw: Int) {
+  ITEM(0),
+  SUBSCRIPTION(1),
+  ALL(2);
+
+  companion object {
+    fun ofRaw(raw: Int): PlatformOwnedProductFilter? {
+      return values().firstOrNull { it.raw == raw }
+    }
+  }
+}
+
 /**
  * `ProductVo` field for field. Kotlin sends a missing string as `""` and
  * Dart does all interpretation.
@@ -349,6 +361,180 @@ data class PlatformProduct (
     return "PlatformProduct(itemId=$itemId, itemName=$itemName, itemPrice=$itemPrice, itemPriceString=$itemPriceString, currencyUnit=$currencyUnit, currencyCode=$currencyCode, itemDesc=$itemDesc, type=$type, subscriptionDurationUnit=$subscriptionDurationUnit, subscriptionDurationMultiplier=$subscriptionDurationMultiplier, tieredSubscriptionYN=$tieredSubscriptionYN, tieredPrice=$tieredPrice, tieredPriceString=$tieredPriceString, tieredSubscriptionDurationUnit=$tieredSubscriptionDurationUnit, tieredSubscriptionDurationMultiplier=$tieredSubscriptionDurationMultiplier, tieredSubscriptionCount=$tieredSubscriptionCount, showStartDate=$showStartDate, showEndDate=$showEndDate, itemImageUrl=$itemImageUrl, itemDownloadUrl=$itemDownloadUrl, freeTrialPeriod=$freeTrialPeriod, json=$json)"
   }
 }
+
+/**
+ * The `SubscriptionPriceChangeVo` fields the public model uses. The prices
+ * are NaN when Samsung sends none.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class PlatformSubscriptionPriceChange (
+  val subscriptionDurationUnit: String,
+  val subscriptionDurationMultiplier: String,
+  val startDate: String,
+  val originalLocalPrice: Double,
+  val originalLocalPriceString: String,
+  val newLocalPrice: Double,
+  val newLocalPriceString: String,
+  val isConsented: Boolean,
+  /** The SDK enum constant's name, or `""`. */
+  val priceChangeMode: String
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): PlatformSubscriptionPriceChange {
+      val subscriptionDurationUnit = pigeonVar_list[0] as String
+      val subscriptionDurationMultiplier = pigeonVar_list[1] as String
+      val startDate = pigeonVar_list[2] as String
+      val originalLocalPrice = pigeonVar_list[3] as Double
+      val originalLocalPriceString = pigeonVar_list[4] as String
+      val newLocalPrice = pigeonVar_list[5] as Double
+      val newLocalPriceString = pigeonVar_list[6] as String
+      val isConsented = pigeonVar_list[7] as Boolean
+      val priceChangeMode = pigeonVar_list[8] as String
+      return PlatformSubscriptionPriceChange(subscriptionDurationUnit, subscriptionDurationMultiplier, startDate, originalLocalPrice, originalLocalPriceString, newLocalPrice, newLocalPriceString, isConsented, priceChangeMode)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      subscriptionDurationUnit,
+      subscriptionDurationMultiplier,
+      startDate,
+      originalLocalPrice,
+      originalLocalPriceString,
+      newLocalPrice,
+      newLocalPriceString,
+      isConsented,
+      priceChangeMode,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as PlatformSubscriptionPriceChange
+    return MessagesPigeonUtils.deepEquals(this.subscriptionDurationUnit, other.subscriptionDurationUnit) && MessagesPigeonUtils.deepEquals(this.subscriptionDurationMultiplier, other.subscriptionDurationMultiplier) && MessagesPigeonUtils.deepEquals(this.startDate, other.startDate) && MessagesPigeonUtils.deepEquals(this.originalLocalPrice, other.originalLocalPrice) && MessagesPigeonUtils.deepEquals(this.originalLocalPriceString, other.originalLocalPriceString) && MessagesPigeonUtils.deepEquals(this.newLocalPrice, other.newLocalPrice) && MessagesPigeonUtils.deepEquals(this.newLocalPriceString, other.newLocalPriceString) && MessagesPigeonUtils.deepEquals(this.isConsented, other.isConsented) && MessagesPigeonUtils.deepEquals(this.priceChangeMode, other.priceChangeMode)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.subscriptionDurationUnit)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.subscriptionDurationMultiplier)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.startDate)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.originalLocalPrice)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.originalLocalPriceString)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.newLocalPrice)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.newLocalPriceString)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.isConsented)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.priceChangeMode)
+    return result
+  }
+  override fun toString(): String {
+    return "PlatformSubscriptionPriceChange(subscriptionDurationUnit=$subscriptionDurationUnit, subscriptionDurationMultiplier=$subscriptionDurationMultiplier, startDate=$startDate, originalLocalPrice=$originalLocalPrice, originalLocalPriceString=$originalLocalPriceString, newLocalPrice=$newLocalPrice, newLocalPriceString=$newLocalPriceString, isConsented=$isConsented, priceChangeMode=$priceChangeMode)"
+  }
+}
+
+/**
+ * The `OwnedProductVo` fields the public model uses, with the same rules as
+ * [PlatformProduct].
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class PlatformOwnedProduct (
+  val itemId: String,
+  val itemName: String,
+  val itemPrice: Double? = null,
+  val itemPriceString: String,
+  val currencyCode: String,
+  val type: String,
+  val paymentId: String,
+  val purchaseId: String,
+  val purchaseDate: String,
+  val subscriptionEndDate: String,
+  val subscriptionPriceChange: PlatformSubscriptionPriceChange? = null,
+  /** The SDK enum constant's name, or `""`. */
+  val acknowledgedStatus: String,
+  val obfuscatedAccountId: String,
+  val obfuscatedProfileId: String,
+  val json: String
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): PlatformOwnedProduct {
+      val itemId = pigeonVar_list[0] as String
+      val itemName = pigeonVar_list[1] as String
+      val itemPrice = pigeonVar_list[2] as Double?
+      val itemPriceString = pigeonVar_list[3] as String
+      val currencyCode = pigeonVar_list[4] as String
+      val type = pigeonVar_list[5] as String
+      val paymentId = pigeonVar_list[6] as String
+      val purchaseId = pigeonVar_list[7] as String
+      val purchaseDate = pigeonVar_list[8] as String
+      val subscriptionEndDate = pigeonVar_list[9] as String
+      val subscriptionPriceChange = pigeonVar_list[10] as PlatformSubscriptionPriceChange?
+      val acknowledgedStatus = pigeonVar_list[11] as String
+      val obfuscatedAccountId = pigeonVar_list[12] as String
+      val obfuscatedProfileId = pigeonVar_list[13] as String
+      val json = pigeonVar_list[14] as String
+      return PlatformOwnedProduct(itemId, itemName, itemPrice, itemPriceString, currencyCode, type, paymentId, purchaseId, purchaseDate, subscriptionEndDate, subscriptionPriceChange, acknowledgedStatus, obfuscatedAccountId, obfuscatedProfileId, json)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      itemId,
+      itemName,
+      itemPrice,
+      itemPriceString,
+      currencyCode,
+      type,
+      paymentId,
+      purchaseId,
+      purchaseDate,
+      subscriptionEndDate,
+      subscriptionPriceChange,
+      acknowledgedStatus,
+      obfuscatedAccountId,
+      obfuscatedProfileId,
+      json,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as PlatformOwnedProduct
+    return MessagesPigeonUtils.deepEquals(this.itemId, other.itemId) && MessagesPigeonUtils.deepEquals(this.itemName, other.itemName) && MessagesPigeonUtils.deepEquals(this.itemPrice, other.itemPrice) && MessagesPigeonUtils.deepEquals(this.itemPriceString, other.itemPriceString) && MessagesPigeonUtils.deepEquals(this.currencyCode, other.currencyCode) && MessagesPigeonUtils.deepEquals(this.type, other.type) && MessagesPigeonUtils.deepEquals(this.paymentId, other.paymentId) && MessagesPigeonUtils.deepEquals(this.purchaseId, other.purchaseId) && MessagesPigeonUtils.deepEquals(this.purchaseDate, other.purchaseDate) && MessagesPigeonUtils.deepEquals(this.subscriptionEndDate, other.subscriptionEndDate) && MessagesPigeonUtils.deepEquals(this.subscriptionPriceChange, other.subscriptionPriceChange) && MessagesPigeonUtils.deepEquals(this.acknowledgedStatus, other.acknowledgedStatus) && MessagesPigeonUtils.deepEquals(this.obfuscatedAccountId, other.obfuscatedAccountId) && MessagesPigeonUtils.deepEquals(this.obfuscatedProfileId, other.obfuscatedProfileId) && MessagesPigeonUtils.deepEquals(this.json, other.json)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.itemId)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.itemName)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.itemPrice)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.itemPriceString)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.currencyCode)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.type)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.paymentId)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.purchaseId)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.purchaseDate)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.subscriptionEndDate)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.subscriptionPriceChange)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.acknowledgedStatus)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.obfuscatedAccountId)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.obfuscatedProfileId)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.json)
+    return result
+  }
+  override fun toString(): String {
+    return "PlatformOwnedProduct(itemId=$itemId, itemName=$itemName, itemPrice=$itemPrice, itemPriceString=$itemPriceString, currencyCode=$currencyCode, type=$type, paymentId=$paymentId, purchaseId=$purchaseId, purchaseDate=$purchaseDate, subscriptionEndDate=$subscriptionEndDate, subscriptionPriceChange=$subscriptionPriceChange, acknowledgedStatus=$acknowledgedStatus, obfuscatedAccountId=$obfuscatedAccountId, obfuscatedProfileId=$obfuscatedProfileId, json=$json)"
+  }
+}
 private open class MessagesPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
@@ -363,8 +549,23 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
         }
       }
       131.toByte() -> {
+        return (readValue(buffer) as Long?)?.let {
+          PlatformOwnedProductFilter.ofRaw(it.toInt())
+        }
+      }
+      132.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           PlatformProduct.fromList(it)
+        }
+      }
+      133.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          PlatformSubscriptionPriceChange.fromList(it)
+        }
+      }
+      134.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          PlatformOwnedProduct.fromList(it)
         }
       }
       else -> super.readValueOfType(type, buffer)
@@ -380,8 +581,20 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
         stream.write(130)
         writeValue(stream, value.raw.toLong())
       }
-      is PlatformProduct -> {
+      is PlatformOwnedProductFilter -> {
         stream.write(131)
+        writeValue(stream, value.raw.toLong())
+      }
+      is PlatformProduct -> {
+        stream.write(132)
+        writeValue(stream, value.toList())
+      }
+      is PlatformSubscriptionPriceChange -> {
+        stream.write(133)
+        writeValue(stream, value.toList())
+      }
+      is PlatformOwnedProduct -> {
+        stream.write(134)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -396,6 +609,7 @@ interface SamsungIapHostApi {
   fun getStoreStatus(): PlatformStoreStatus
   /** [productIds] is comma-separated; empty means every product. */
   suspend fun getProductsDetails(productIds: String): List<PlatformProduct>
+  suspend fun getOwnedList(filter: PlatformOwnedProductFilter): List<PlatformOwnedProduct>
 
   companion object {
     /** The codec used by SamsungIapHostApi. */
@@ -449,6 +663,25 @@ interface SamsungIapHostApi {
             CoroutineScope(Dispatchers.Main).launch {
               val wrapped: List<Any?> = try {
                 listOf(api.getProductsDetails(productIdsArg))
+              } catch (exception: Throwable) {
+                MessagesPigeonUtils.wrapError(exception)
+              }
+              reply.reply(wrapped)
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.samsung_iap_flutter_android.SamsungIapHostApi.getOwnedList$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val filterArg = args[0] as PlatformOwnedProductFilter
+            CoroutineScope(Dispatchers.Main).launch {
+              val wrapped: List<Any?> = try {
+                listOf(api.getOwnedList(filterArg))
               } catch (exception: Throwable) {
                 MessagesPigeonUtils.wrapError(exception)
               }

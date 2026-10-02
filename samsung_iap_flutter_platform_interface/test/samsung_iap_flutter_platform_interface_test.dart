@@ -44,6 +44,60 @@ SamsungProduct _product({
   rawJson: rawJson,
 );
 
+SubscriptionPriceChange _priceChange({
+  PriceChangeMode mode = PriceChangeMode.increaseConsentRequired,
+  bool consented = false,
+  DateTime? startDate,
+  double? originalPrice = 7.99,
+  String originalFormattedPrice = '£7.99',
+  double? newPrice = 8.99,
+  String newFormattedPrice = '£8.99',
+  SubscriptionPeriod? period,
+}) => SubscriptionPriceChange(
+  mode: mode,
+  consented: consented,
+  startDate: startDate,
+  originalPrice: originalPrice,
+  originalFormattedPrice: originalFormattedPrice,
+  newPrice: newPrice,
+  newFormattedPrice: newFormattedPrice,
+  period: period,
+);
+
+OwnedProduct _owned({
+  String productId = 'monthly',
+  String name = 'Monthly',
+  String purchaseId = 'a1b2c3',
+  String paymentId = 'TPMTID20260101',
+  SamsungProductType type = SamsungProductType.subscription,
+  DateTime? purchaseDate,
+  DateTime? subscriptionEndDate,
+  AcknowledgedStatus acknowledgedStatus = AcknowledgedStatus.acknowledged,
+  SubscriptionPriceChange? priceChange,
+  String? obfuscatedAccountId,
+  String? obfuscatedProfileId,
+  double? price = 7.99,
+  String formattedPrice = '£7.99',
+  String currencyCode = 'GBP',
+  String rawJson = '{}',
+}) => OwnedProduct(
+  productId: productId,
+  name: name,
+  purchaseId: purchaseId,
+  paymentId: paymentId,
+  type: type,
+  purchaseDate: purchaseDate,
+  subscriptionEndDate: subscriptionEndDate,
+  acknowledgedStatus: acknowledgedStatus,
+  priceChange: priceChange,
+  obfuscatedAccountId: obfuscatedAccountId,
+  obfuscatedProfileId: obfuscatedProfileId,
+  price: price,
+  formattedPrice: formattedPrice,
+  currencyCode: currencyCode,
+  rawJson: rawJson,
+);
+
 void main() {
   group(SamsungIapFlutterPlatform, () {
     test('default instance throws until an implementation registers', () {
@@ -58,6 +112,10 @@ void main() {
       );
       expect(platform.getGalaxyStoreStatus, throwsUnimplementedError);
       expect(() => platform.getProducts([]), throwsUnimplementedError);
+      expect(
+        () => platform.getOwnedProducts(OwnedProductFilter.all),
+        throwsUnimplementedError,
+      );
     });
 
     test('accepts an instance that extends the base class', () {
@@ -181,6 +239,84 @@ void main() {
       expect(month.toString(), 'SubscriptionPeriod(1 month)');
       expect(offer.toString(), 'IntroductoryOffer(£0.99 x 3)');
       expect(_product().toString(), 'SamsungProduct(coins_100, £0.99)');
+    });
+
+    test('owned products with the same fields are equal', () {
+      OwnedProduct full() => _owned(
+        purchaseDate: DateTime(2026, 1, 1, 9),
+        priceChange: _priceChange(startDate: DateTime(2026, 6)),
+      );
+
+      expect(full(), full());
+      expect(full().hashCode, full().hashCode);
+    });
+
+    test('owned products differing in any one field are not equal', () {
+      final variants = [
+        _owned(productId: 'yearly'),
+        _owned(name: 'Yearly'),
+        _owned(purchaseId: 'd4e5f6'),
+        _owned(paymentId: 'TPMTID20260202'),
+        _owned(type: SamsungProductType.item),
+        _owned(purchaseDate: DateTime(2026)),
+        _owned(subscriptionEndDate: DateTime(2026, 2)),
+        _owned(acknowledgedStatus: AcknowledgedStatus.notAcknowledged),
+        _owned(priceChange: _priceChange()),
+        _owned(obfuscatedAccountId: 'account'),
+        _owned(obfuscatedProfileId: 'profile'),
+        _owned(price: 8.99),
+        _owned(formattedPrice: '£8.99'),
+        _owned(currencyCode: 'EUR'),
+        _owned(rawJson: '{"mItemId":"monthly"}'),
+      ];
+
+      for (final (index, variant) in variants.indexed) {
+        expect(variant, isNot(_owned()), reason: 'variant $index');
+      }
+    });
+
+    test('price changes differing in any one field are not equal', () {
+      expect(_priceChange(), _priceChange());
+      expect(_priceChange().hashCode, _priceChange().hashCode);
+      final variants = [
+        _priceChange(mode: PriceChangeMode.decrease),
+        _priceChange(consented: true),
+        _priceChange(startDate: DateTime(2026, 6)),
+        _priceChange(originalPrice: 6.99),
+        _priceChange(originalFormattedPrice: '£6.99'),
+        _priceChange(newPrice: 9.99),
+        _priceChange(newFormattedPrice: '£9.99'),
+        _priceChange(
+          period: const SubscriptionPeriod(count: 1, unit: PeriodUnit.month),
+        ),
+      ];
+
+      for (final (index, variant) in variants.indexed) {
+        expect(variant, isNot(_priceChange()), reason: 'variant $index');
+      }
+    });
+
+    test('subscriptionDetailLink keeps the documented host casing', () {
+      expect(
+        _owned().subscriptionDetailLink,
+        'samsungapps://SubscriptionDetail?purchaseId=a1b2c3',
+      );
+      expect(
+        _owned(purchaseId: 'a&b c').subscriptionDetailLink,
+        'samsungapps://SubscriptionDetail?purchaseId=a%26b+c',
+      );
+    });
+
+    test('owned products and price changes describe themselves', () {
+      expect(
+        _owned().toString(),
+        'OwnedProduct(monthly, a1b2c3, acknowledged)',
+      );
+      expect(
+        _priceChange().toString(),
+        'SubscriptionPriceChange(increaseConsentRequired, '
+        '£7.99 -> £8.99, consented: false)',
+      );
     });
   });
 }

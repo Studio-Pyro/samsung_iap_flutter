@@ -23,8 +23,29 @@ DateTime? parseLocalDateTime(String value) {
   return parsed.millisecondsSinceEpoch == 0 ? null : parsed;
 }
 
+/// Returns `null` for the empty string the SDK sends for a missing value.
+String? nonEmptyOrNull(String value) => value.isEmpty ? null : value;
+
 /// Parses a URL, or returns `null` for an empty or malformed one.
 Uri? parseUri(String value) => value.isEmpty ? null : Uri.tryParse(value);
+
+/// Parses the name of the SDK's `AcknowledgedStatus` constant.
+AcknowledgedStatus parseAcknowledgedStatus(String value) => switch (value) {
+  'UNSUPPORTED' => AcknowledgedStatus.unsupported,
+  'NOT_ACKNOWLEDGED' => AcknowledgedStatus.notAcknowledged,
+  'ACKNOWLEDGED' => AcknowledgedStatus.acknowledged,
+  _ => AcknowledgedStatus.unknown,
+};
+
+/// Parses the name of the SDK's `PriceChangeMode` constant.
+PriceChangeMode parsePriceChangeMode(String value) => switch (value) {
+  'PRICE_INCREASE_USER_AGREEMENT_REQUIRED' =>
+    PriceChangeMode.increaseConsentRequired,
+  'PRICE_INCREASE_NO_USER_AGREEMENT_REQUIRED' =>
+    PriceChangeMode.increaseNoConsentRequired,
+  'PRICE_DECREASE' => PriceChangeMode.decrease,
+  _ => PriceChangeMode.unknown,
+};
 
 /// Parses the SDK's `item`/`subscription` product type.
 SamsungProductType parseProductType(String value) => switch (value) {

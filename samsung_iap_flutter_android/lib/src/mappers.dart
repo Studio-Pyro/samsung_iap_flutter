@@ -19,6 +19,51 @@ GalaxyStoreStatus storeStatusFromPlatform(PlatformStoreStatus status) =>
       PlatformStoreStatus.invalid => GalaxyStoreStatus.invalid,
     };
 
+/// Converts the public owned-product filter into its wire form.
+PlatformOwnedProductFilter ownedProductFilterToPlatform(
+  OwnedProductFilter filter,
+) => switch (filter) {
+  OwnedProductFilter.item => PlatformOwnedProductFilter.item,
+  OwnedProductFilter.subscription => PlatformOwnedProductFilter.subscription,
+  OwnedProductFilter.all => PlatformOwnedProductFilter.all,
+};
+
+/// Converts the wire mirror of `OwnedProductVo` into the public model.
+OwnedProduct ownedProductFromPlatform(PlatformOwnedProduct p) => OwnedProduct(
+  productId: p.itemId,
+  name: p.itemName,
+  purchaseId: p.purchaseId,
+  paymentId: p.paymentId,
+  type: parseProductType(p.type),
+  purchaseDate: parseLocalDateTime(p.purchaseDate),
+  subscriptionEndDate: parseLocalDateTime(p.subscriptionEndDate),
+  acknowledgedStatus: parseAcknowledgedStatus(p.acknowledgedStatus),
+  priceChange: _priceChange(p.subscriptionPriceChange),
+  obfuscatedAccountId: nonEmptyOrNull(p.obfuscatedAccountId),
+  obfuscatedProfileId: nonEmptyOrNull(p.obfuscatedProfileId),
+  price: finiteOrNull(p.itemPrice),
+  formattedPrice: p.itemPriceString,
+  currencyCode: p.currencyCode,
+  rawJson: p.json,
+);
+
+SubscriptionPriceChange? _priceChange(PlatformSubscriptionPriceChange? c) =>
+    c == null
+    ? null
+    : SubscriptionPriceChange(
+        mode: parsePriceChangeMode(c.priceChangeMode),
+        consented: c.isConsented,
+        startDate: parseLocalDateTime(c.startDate),
+        originalPrice: finiteOrNull(c.originalLocalPrice),
+        originalFormattedPrice: c.originalLocalPriceString,
+        newPrice: finiteOrNull(c.newLocalPrice),
+        newFormattedPrice: c.newLocalPriceString,
+        period: parseSubscriptionPeriod(
+          multiplier: c.subscriptionDurationMultiplier,
+          unit: c.subscriptionDurationUnit,
+        ),
+      );
+
 /// Converts the wire mirror of `ProductVo` into the public model.
 SamsungProduct productFromPlatform(PlatformProduct p) => SamsungProduct(
   id: p.itemId,

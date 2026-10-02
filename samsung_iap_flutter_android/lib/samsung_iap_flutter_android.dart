@@ -45,6 +45,15 @@ class SamsungIapFlutterAndroid extends SamsungIapFlutterPlatform {
         return products.map(productFromPlatform).toList();
       });
 
+  @override
+  Future<List<OwnedProduct>> getOwnedProducts(OwnedProductFilter filter) =>
+      _enqueue(() async {
+        final owned = await _api.getOwnedList(
+          ownedProductFilterToPlatform(filter),
+        );
+        return owned.map(ownedProductFromPlatform).toList();
+      });
+
   /// Runs [call] after every earlier call has settled, so a failure never
   /// blocks the calls behind it.
   Future<T> _enqueue<T>(Future<T> Function() call) {
