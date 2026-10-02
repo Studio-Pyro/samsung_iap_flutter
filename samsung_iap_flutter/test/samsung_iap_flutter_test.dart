@@ -501,7 +501,6 @@ void main() {
       verifyNever(platformChange);
     });
 
-    // Neither the SDK nor Samsung's docs reject it, so Samsung decides.
     test('sends a change to the same product', () async {
       await iap.changeSubscriptionPlan(
         fromProductId: 'monthly',
