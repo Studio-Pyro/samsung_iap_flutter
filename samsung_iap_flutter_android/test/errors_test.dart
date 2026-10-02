@@ -25,34 +25,40 @@ void main() {
     fail('getProducts did not throw');
   }
 
-  test('maps every Samsung response code to its kind', () async {
-    final kinds = {
-      1: SamsungIapErrorKind.userCanceled,
-      -1000: SamsungIapErrorKind.initializationFailed,
-      -1001: SamsungIapErrorKind.storeUpdateRequired,
-      -1002: SamsungIapErrorKind.general,
-      -1003: SamsungIapErrorKind.alreadyOwned,
-      -1004: SamsungIapErrorKind.unknown,
-      -1005: SamsungIapErrorKind.productNotFound,
-      -1006: SamsungIapErrorKind.purchaseResultUnknown,
-      -1007: SamsungIapErrorKind.productNotFound,
-      -1008: SamsungIapErrorKind.network,
-      -1009: SamsungIapErrorKind.network,
-      -1010: SamsungIapErrorKind.network,
-      -1011: SamsungIapErrorKind.network,
-      -1012: SamsungIapErrorKind.notAvailableInCountry,
-      -1013: SamsungIapErrorKind.notAvailableInCountry,
-      -1014: SamsungIapErrorKind.accountNotSignedIn,
-      -1015: SamsungIapErrorKind.accountNotSignedIn,
-      -9999: SamsungIapErrorKind.unknown,
-    };
-    for (final MapEntry(key: code, value: kind) in kinds.entries) {
-      final e = await failWith(sdkError(code));
+  test(
+    'maps every Samsung response code to its kind and keeps dialogShown',
+    () async {
+      final kinds = {
+        1: SamsungIapErrorKind.userCanceled,
+        -1000: SamsungIapErrorKind.initializationFailed,
+        -1001: SamsungIapErrorKind.storeUpdateRequired,
+        -1002: SamsungIapErrorKind.general,
+        -1003: SamsungIapErrorKind.alreadyOwned,
+        -1004: SamsungIapErrorKind.unknown,
+        -1005: SamsungIapErrorKind.productNotFound,
+        -1006: SamsungIapErrorKind.purchaseResultUnknown,
+        -1007: SamsungIapErrorKind.productNotFound,
+        -1008: SamsungIapErrorKind.network,
+        -1009: SamsungIapErrorKind.network,
+        -1010: SamsungIapErrorKind.network,
+        -1011: SamsungIapErrorKind.network,
+        -1012: SamsungIapErrorKind.notAvailableInCountry,
+        -1013: SamsungIapErrorKind.notAvailableInCountry,
+        -1014: SamsungIapErrorKind.accountNotSignedIn,
+        -1015: SamsungIapErrorKind.accountNotSignedIn,
+        -9999: SamsungIapErrorKind.unknown,
+      };
+      for (final MapEntry(key: code, value: kind) in kinds.entries) {
+        for (final dialogShown in [true, false]) {
+          final e = await failWith(sdkError(code, dialogShown: dialogShown));
 
-      expect(e.kind, kind, reason: '$code');
-      expect(e.code, code);
-    }
-  });
+          expect(e.kind, kind, reason: '$code');
+          expect(e.code, code);
+          expect(e.dialogShown, dialogShown, reason: '$code');
+        }
+      }
+    },
+  );
 
   test('keeps the raw Samsung fields', () async {
     final e = await failWith(
