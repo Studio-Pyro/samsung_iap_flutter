@@ -53,9 +53,9 @@ flutter test integration_test/device_test.dart \
 
 The purchase test is interactive and is skipped unless you pass `SAMSUNG_IAP_PURCHASE_ID`. Use an
 item the tester does not own yet, because buying an owned item fails with `alreadyOwned`. The test
-starts `getOwnedProducts` and then `purchase` at once, so it also checks that
-a purchase queued behind an inquiry is not refused. When Samsung's TEST-mode payment sheet opens,
-tap through it on the device. The test then checks that the new purchase is in the owned list.
+starts `getOwnedProducts` and then `purchase` at once, so it also checks that a purchase queued
+behind an inquiry is not refused. When Samsung's TEST-mode payment sheet opens, tap through it on
+the device. The test then checks that the new purchase is in the owned list.
 
 ```sh
 flutter test integration_test/device_test.dart \
@@ -66,15 +66,14 @@ The consume and acknowledge tests are interactive too, and each needs its own it
 does not own:
 
 - With `SAMSUNG_IAP_CONSUME_ID`, the test buys the item, consumes it, and buys it again to show it
-  can be bought again. It then consumes a batch of the second purchase, the first purchase again,
-  and a bogus purchase ID. It expects `success`, `alreadyProcessed` and `invalidPurchaseId`. Tap
-  through two payment sheets.
+  can be bought again. It then consumes the second and first purchases together, and expects
+  `success` and `alreadyProcessed`. Last, it consumes the second purchase with a bogus purchase ID,
+  and expects `alreadyProcessed` and `invalidPurchaseId`. Tap through two payment sheets.
 
-  The batch check is an open acceptance item. Samsung documents both a per-purchase
-  `invalidPurchaseId` and a whole-call error with detail code 9226 for a bad ID. If the test fails
-  with `general` and `detailCode: 9226`, Samsung fails the whole batch. Then consume the second
-  purchase in the example app before the next run, and change the test and the package README to
-  match.
+  The two batch checks are open acceptance items. Samsung documents both a per-purchase
+  `invalidPurchaseId` and a whole-call error with detail code 9226 for a bad ID. If the last call
+  fails with `general` and `detailCode: 9226`, Samsung fails the whole batch. Change the test and
+  the package README to match.
 - With `SAMSUNG_IAP_ACKNOWLEDGE_ID`, the test buys the item and checks that it is owned and
   `notAcknowledged`. It then acknowledges it, checks that it is `acknowledged`, and checks that a
   second acknowledge reports `alreadyProcessed`. Tap through one payment sheet.

@@ -126,18 +126,18 @@ void main() {
       ]);
 
       final second = await iap.purchase(consumeIdDefine);
-      final results = await iap.consume([
-        second.purchaseId,
-        first.purchaseId,
-        _bogusPurchaseId,
-      ]);
+      Future<Map<String, AckStatus>> consume(List<String> ids) async => {
+        for (final r in await iap.consume(ids)) r.purchaseId: r.status,
+      };
 
-      final statuses = {for (final r in results) r.purchaseId: r.status};
-      expect(statuses, {
+      expect(await consume([second.purchaseId, first.purchaseId]), {
         second.purchaseId: AckStatus.success,
         first.purchaseId: AckStatus.alreadyProcessed,
+      });
+      expect(await consume([second.purchaseId, _bogusPurchaseId]), {
+        second.purchaseId: AckStatus.alreadyProcessed,
         _bogusPurchaseId: AckStatus.invalidPurchaseId,
-      }, reason: '$results');
+      });
     },
     skip: consumeIdDefine.isEmpty
         ? 'Set SAMSUNG_IAP_CONSUME_ID to buy and consume interactively.'
