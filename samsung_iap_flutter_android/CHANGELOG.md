@@ -12,7 +12,8 @@ First release. The Android implementation of `samsung_iap_flutter`.
 - Reports a call that Samsung refuses to start as `busy`.
 - Throws `storeUpdateRequired` from `acknowledge` on Galaxy Store older than 4.5.90.
 - Maps every Samsung error code to a `SamsungIapErrorKind`, and parses the detail code and
-  `dialogShown`.
+  `dialogShown`. A raw server code, such as 9201 from a service call, maps to the same kind and
+  `detailCode` as the -10xx code with that detail code.
 - Parses Samsung's strings into the public models. A value this version does not know parses to
   `unknown`, `Y` and `N` parse to `bool`, and dates parse to device-local `DateTime` values.
 - Ships an R8 keep rule for Samsung's IAP service (AIDL) classes.
