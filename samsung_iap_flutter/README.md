@@ -68,8 +68,8 @@ Follow these rules:
   at a time, and the purchase starts when the inquiry finishes.
 - **Verify, then grant.** If you have a server, verify `purchaseId` with Samsung's receipt API
   before you grant access.
-- **Retry `busy`.** Samsung returns `busy` when it is still finishing a call, for example an
-  inquiry that timed out after 30 seconds. It refuses before it shows any UI, so a retry cannot
+- **Retry `busy`.** Samsung returns `busy` when it is still finishing a call, for example one
+  that timed out after 30 seconds. It refuses before it shows any UI, so a retry cannot
   charge the user twice.
 
 ### Obfuscated IDs

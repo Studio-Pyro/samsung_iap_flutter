@@ -19,11 +19,8 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
 
-/**
- * How long an inquiry, consume or acknowledge waits for Samsung. They run as
- * background requests with no Samsung UI. Payments wait indefinitely.
- */
-internal val INQUIRY_TIMEOUT = 30.seconds
+/** How long a call without Samsung UI waits for Samsung. Payments wait indefinitely. */
+internal val BACKGROUND_CALL_TIMEOUT = 30.seconds
 
 class SamsungIapFlutterPlugin(
     private val helperFactory: (Context) -> IapHelper = IapHelper::getInstance,
@@ -55,7 +52,7 @@ class SamsungIapFlutterPlugin(
     override suspend fun getProductsDetails(productIds: String): List<PlatformProduct> {
         val helper = requireHelper()
         requireStore()
-        return awaitSdk("getProductsDetails", INQUIRY_TIMEOUT) { done ->
+        return awaitSdk("getProductsDetails", BACKGROUND_CALL_TIMEOUT) { done ->
             helper.getProductsDetails(productIds) { error: ErrorVo?, products: ArrayList<ProductVo>? ->
                 done(error) { products!!.map { it.toPlatform() } }
             }
@@ -66,7 +63,7 @@ class SamsungIapFlutterPlugin(
     override suspend fun getOwnedList(filter: PlatformOwnedProductFilter): List<PlatformOwnedProduct> {
         val helper = requireHelper()
         requireStore()
-        return awaitSdk("getOwnedList", INQUIRY_TIMEOUT) { done ->
+        return awaitSdk("getOwnedList", BACKGROUND_CALL_TIMEOUT) { done ->
             helper.getOwnedList(filter.toSdk()) { error: ErrorVo?, owned: ArrayList<OwnedProductVo>? ->
                 done(error) { owned!!.map { it.toPlatform() } }
             }
@@ -96,7 +93,7 @@ class SamsungIapFlutterPlugin(
     override suspend fun consumePurchasedItems(purchaseIds: String): List<PlatformAckResult> {
         val helper = requireHelper()
         requireStore()
-        return awaitSdk("consumePurchasedItems", INQUIRY_TIMEOUT) { done ->
+        return awaitSdk("consumePurchasedItems", BACKGROUND_CALL_TIMEOUT) { done ->
             helper.consumePurchasedItems(purchaseIds) { error: ErrorVo?, results: ArrayList<ConsumeVo>? ->
                 done(error) { results!!.map { it.toPlatform() } }
             }
@@ -110,7 +107,7 @@ class SamsungIapFlutterPlugin(
         if (!acknowledgeAvailable(context)) {
             throw FlutterError("store_update_required", "Acknowledging needs Galaxy Store 4.5.90 or later.")
         }
-        return awaitSdk("acknowledgePurchases", INQUIRY_TIMEOUT) { done ->
+        return awaitSdk("acknowledgePurchases", BACKGROUND_CALL_TIMEOUT) { done ->
             helper.acknowledgePurchases(purchaseIds) { error: ErrorVo?, results: ArrayList<AcknowledgeVo>? ->
                 done(error) { results!!.map { it.toPlatform() } }
             }
