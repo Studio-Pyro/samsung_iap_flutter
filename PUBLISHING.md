@@ -1,82 +1,91 @@
-# Publishing `samsung_iap_flutter` 📦
+# Publishing samsung_iap_flutter
 
-This document describes how to publish `samsung_iap_flutter` and its federated packages to [pub.dev][pub_dev_link].
+This document describes how to publish `samsung_iap_flutter` and its federated packages to
+[pub.dev][pub_dev_link] under the verified publisher `studiopyro.dev`.
 
-Because `samsung_iap_flutter` is a [federated plugin][federated_plugins_link], each package is published independently and they depend on each other by version. The packages live side-by-side in this repository and reference each other through [path dependencies][path_dependencies_link] during development. Path dependencies are **not** allowed by `pub.dev`, so they must be replaced with version dependencies before publishing.
+Because `samsung_iap_flutter` is a [federated plugin][federated_plugins_link], each package is
+published on its own, and the packages depend on each other by version. Each `pubspec.yaml` names
+its sibling packages by version, for example `samsung_iap_flutter_platform_interface: ^0.1.0`. A
+committed `pubspec_overrides.yaml` in the android package, the app-facing package and the example
+points those dependencies at the sources in this repository. pub leaves `pubspec_overrides.yaml` out
+of a published package, so you replace and restore nothing when you publish.
 
 ## Packages
 
 `samsung_iap_flutter` is composed of the following packages:
 
-- `samsung_iap_flutter_platform_interface` — the common platform interface.
-- `samsung_iap_flutter_android` — the Android implementation.
-- `samsung_iap_flutter` — the front-facing app-facing package that users depend on.
+- `samsung_iap_flutter_platform_interface`, the common platform interface.
+- `samsung_iap_flutter_android`, the Android implementation.
+- `samsung_iap_flutter`, the app-facing package that users depend on.
 
-## Versioning ⚖️
+## Versioning
 
-Each package has its own `version` in its `pubspec.yaml` and its own `CHANGELOG.md`. They can be released independently, but keep the following in mind:
+Each package has its own `version` in its `pubspec.yaml` and its own `CHANGELOG.md`. You can release
+them independently, but keep the following in mind:
 
-- The platform interface uses semantic versioning, and a **breaking change** to it requires a coordinated release of every implementation that depends on it.
-- When the front-facing package is updated, make sure its version constraints on the platform implementations and the platform interface still resolve to the versions you intend to ship.
+- The platform interface uses semantic versioning. A breaking change to it needs a coordinated
+  release of every package that depends on it.
+- When a package needs a newer version of a sibling, raise its version constraint, for example to
+  `^0.2.0`. The overrides hide a constraint that is too low, so check each constraint before you
+  publish.
 
-## Before publishing ✅
+## Set up the verified publisher
+
+Do this once, before the first publish. Use one Google account for every step.
+
+1. In [Google Search Console][search_console_link], add `studiopyro.dev` as a **Domain** property
+   and verify it with the DNS TXT record that Search Console gives you.
+2. Sign in to pub.dev and open [Create publisher][create_publisher_link]. Enter `studiopyro.dev`
+   and finish the verification.
+3. Optional: in the publisher's **Admin** tab, add the other maintainers as members.
+
+## Before publishing
 
 1. Update each package's `CHANGELOG.md` with the changes since the previous release.
 2. Bump the `version` field in each package's `pubspec.yaml`.
-3. Replace [path dependencies][path_dependencies_link] with version dependencies in every package that depends on another federated package.
-
-For example, in `samsung_iap_flutter/pubspec.yaml` replace:
-
-```yaml
-dependencies:
-  samsung_iap_flutter_platform_interface:
-    path: ../samsung_iap_flutter_platform_interface
-```
-
-with:
-
-```yaml
-dependencies:
-  samsung_iap_flutter_platform_interface: ^<version>
-```
-
-Apply the same change to every platform implementation package that depends on `samsung_iap_flutter_platform_interface`.
-
-4. Verify each package with a dry run before publishing:
+3. Commit the changes. pub warns about a dirty git state.
+4. Run a dry run in each package, in the publishing order below:
 
 ```sh
-dart pub publish --dry-run
+cd samsung_iap_flutter_platform_interface && flutter pub publish --dry-run
 ```
 
-Resolve every warning or error reported by the dry run before continuing.
+The dry run of the android and app-facing packages reports one hint, that non-dev dependencies are
+overridden in `pubspec_overrides.yaml`. That hint is expected. Resolve every other warning or error
+before you continue.
 
-## Publishing order 🚀
+## Publishing order
 
-The platform interface must be published **first**, so that the platform implementations can resolve it. Then publish each platform implementation, and finally publish the front-facing package:
+Publish the platform interface first, then the Android implementation, then the app-facing package.
+Each package needs the packages it depends on to be on pub.dev already.
 
 ```sh
-# 1. Publish the platform interface first.
 cd samsung_iap_flutter_platform_interface
-dart pub publish
+flutter pub publish
 
-# 2. Publish each platform implementation.
 cd ../samsung_iap_flutter_android
-dart pub publish
+flutter pub publish
 
-# 3. Publish the front-facing package last.
 cd ../samsung_iap_flutter
-dart pub publish
+flutter pub publish
 ```
 
-💡 **Note**: Publishing the platform implementations and front-facing package **before** the platform interface is published will fail, because they cannot resolve their dependency on `samsung_iap_flutter_platform_interface`.
+## After publishing
 
-## After publishing 🧹
+1. Open each new package on pub.dev. In its **Admin** tab, transfer it to the `studiopyro.dev`
+   publisher. A package that already belongs to the publisher needs no transfer.
+2. After the first release, raise `min_score` of the `pana` job to 160 in
+   `.github/workflows/samsung_iap_flutter_platform_interface.yaml`,
+   `.github/workflows/samsung_iap_flutter_android.yaml` and
+   `.github/workflows/samsung_iap_flutter.yaml`.
 
-After publishing, restore the [path dependencies][path_dependencies_link] in each package so local development continues to work against the in-repository sources. Alternatively, you can keep the version dependencies on `main` and use `dependency_overrides` locally — pick the workflow that best fits your team.
+For more information about publishing Dart and Flutter packages, see Flutter's
+[official documentation on publishing packages][publishing_packages_link] and the pub.dev page on
+[verified publishers][verified_publishers_link].
 
-For more information about publishing Dart and Flutter packages, see Flutter's [official documentation on publishing packages][publishing_packages_link].
-
+[create_publisher_link]: https://pub.dev/create-publisher
 [federated_plugins_link]: https://docs.flutter.dev/packages-and-plugins/developing-packages#federated-plugins
-[path_dependencies_link]: https://dart.dev/tools/pub/dependencies#path-packages
 [pub_dev_link]: https://pub.dev
 [publishing_packages_link]: https://docs.flutter.dev/packages-and-plugins/developing-packages#publish
+[search_console_link]: https://search.google.com/search-console
+[verified_publishers_link]: https://dart.dev/tools/pub/verified-publishers
