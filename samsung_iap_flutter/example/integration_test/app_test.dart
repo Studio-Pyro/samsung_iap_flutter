@@ -64,6 +64,24 @@ void main() {
       expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
     });
 
+    test('consume and acknowledge fail fast with storeUnavailable', () async {
+      final stopwatch = Stopwatch()..start();
+
+      for (final call in [iap.consume, iap.acknowledge]) {
+        await expectLater(
+          call(['a1b2c3', 'd4e5f6']),
+          throwsA(
+            isA<SamsungIapException>().having(
+              (e) => e.kind,
+              'kind',
+              SamsungIapErrorKind.storeUnavailable,
+            ),
+          ),
+        );
+      }
+      expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
+    });
+
     testWidgets('the example shows the store status and the error', (
       tester,
     ) async {

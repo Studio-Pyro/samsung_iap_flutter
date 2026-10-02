@@ -10,6 +10,16 @@ const ownedIdsDefine = String.fromEnvironment('SAMSUNG_IAP_OWNED_IDS');
 /// purchase test.
 const purchaseIdDefine = String.fromEnvironment('SAMSUNG_IAP_PURCHASE_ID');
 
+/// An item the license tester does not own, to buy and consume twice.
+const consumeIdDefine = String.fromEnvironment('SAMSUNG_IAP_CONSUME_ID');
+
+/// An item the license tester does not own, to buy and acknowledge.
+const acknowledgeIdDefine = String.fromEnvironment(
+  'SAMSUNG_IAP_ACKNOWLEDGE_ID',
+);
+
+const _bogusPurchaseId = 'samsung-iap-flutter-bogus';
+
 // Runs on a Samsung device with Galaxy Store, signed in as a license tester.
 // See "Integration tests" in the repository README.
 void main() {
@@ -100,6 +110,65 @@ void main() {
     },
     skip: purchaseIdDefine.isEmpty
         ? 'Set SAMSUNG_IAP_PURCHASE_ID to buy a product interactively.'
+        : false,
+    timeout: const Timeout(Duration(minutes: 5)),
+  );
+
+  test(
+    'consume makes an item repurchasable, and a batch fails per item',
+    () async {
+      final first = await iap.purchase(consumeIdDefine);
+
+      expect(await iap.consume([first.purchaseId]), [
+        isA<PurchaseAckResult>()
+            .having((r) => r.purchaseId, 'purchaseId', first.purchaseId)
+            .having((r) => r.status, 'status', AckStatus.success),
+      ]);
+
+      final second = await iap.purchase(consumeIdDefine);
+      final results = await iap.consume([second.purchaseId, _bogusPurchaseId]);
+
+      final statuses = {for (final r in results) r.purchaseId: r.status};
+      expect(statuses, {
+        second.purchaseId: AckStatus.success,
+        _bogusPurchaseId: AckStatus.invalidPurchaseId,
+      }, reason: '$results');
+    },
+    skip: consumeIdDefine.isEmpty
+        ? 'Set SAMSUNG_IAP_CONSUME_ID to buy and consume interactively.'
+        : false,
+    timeout: const Timeout(Duration(minutes: 5)),
+  );
+
+  test(
+    'acknowledge marks the owned product acknowledged, once',
+    () async {
+      Future<AcknowledgedStatus> statusOf(String purchaseId) async {
+        final owned = await iap.getOwnedProducts();
+        return owned
+            .singleWhere((p) => p.purchaseId == purchaseId)
+            .acknowledgedStatus;
+      }
+
+      final purchase = await iap.purchase(acknowledgeIdDefine);
+      expect(
+        await statusOf(purchase.purchaseId),
+        AcknowledgedStatus.notAcknowledged,
+      );
+
+      final results = await iap.acknowledge([purchase.purchaseId]);
+
+      expect(results.single.status, AckStatus.success, reason: '$results');
+      expect(
+        await statusOf(purchase.purchaseId),
+        AcknowledgedStatus.acknowledged,
+      );
+      final again = (await iap.acknowledge([purchase.purchaseId])).single;
+      expect(again.status, AckStatus.alreadyProcessed, reason: '$again');
+      expect(again.isProcessed, isTrue);
+    },
+    skip: acknowledgeIdDefine.isEmpty
+        ? 'Set SAMSUNG_IAP_ACKNOWLEDGE_ID to buy and acknowledge interactively.'
         : false,
     timeout: const Timeout(Duration(minutes: 5)),
   );
