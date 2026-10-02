@@ -40,10 +40,8 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SamsungIapFlutterPluginTest {
@@ -363,60 +361,45 @@ class SamsungIapFlutterPluginTest {
         assertEquals("startPayment", error.details)
     }
 
-    /** An SDK call the plugin guards. */
+    /** An SDK call the plugin guards. The SDK takes its listener last. */
     private class GuardedCall(
         val name: String,
         val listener: Class<*>,
-        /** The position of the listener among the SDK method's arguments. */
-        val listenerIndex: Int,
         /** What the SDK method returns once it has sent the request. */
         val sent: Any?,
-        /** How long the plugin waits for the callback, or `null` for no limit. */
-        val timeout: Duration?,
-        /** What the SDK passes alongside an error. */
-        val emptyValue: Any?,
         val call: suspend (SamsungIapFlutterPlugin) -> Any?,
         /** Calls the SDK method with matchers, for stubbing and verifying. */
         val sdk: (IapHelper) -> Unit,
     )
 
-    private val guardedCalls = listOf(
+    private val inquiries = listOf(
         GuardedCall(
             "getProductsDetails",
             OnGetProductsDetailsListener::class.java,
-            listenerIndex = 1,
             sent = null,
-            timeout = 30.seconds,
-            emptyValue = arrayListOf<ProductVo>(),
             call = { it.getProductsDetails("") },
             sdk = { it.getProductsDetails(anyString(), any()) },
         ),
         GuardedCall(
             "getOwnedList",
             OnGetOwnedListListener::class.java,
-            listenerIndex = 1,
             sent = true,
-            timeout = 30.seconds,
-            emptyValue = arrayListOf<OwnedProductVo>(),
             call = { it.getOwnedList(PlatformOwnedProductFilter.ALL) },
             sdk = { it.getOwnedList(anyString(), any()) },
         ),
-        GuardedCall(
-            "startPayment",
-            OnPaymentListener::class.java,
-            listenerIndex = 3,
-            sent = true,
-            timeout = null,
-            emptyValue = null,
-            call = { it.startPayment("coins_100", null, null) },
-            sdk = { it.startPayment(anyString(), any(), any(), any()) },
-        ),
+    )
+
+    private val payment = GuardedCall(
+        "startPayment",
+        OnPaymentListener::class.java,
+        sent = true,
+        call = { it.startPayment("coins_100", null, null) },
+        sdk = { it.startPayment(anyString(), any(), any(), any()) },
     )
 
     /** Stubs [guarded] to send, then hand its listener to [reply]. */
     private fun answer(guarded: GuardedCall, reply: (listener: Any) -> Unit = {}) {
-        doAnswer { reply(it.getArgument(guarded.listenerIndex)); guarded.sent }
-            .`when`(helper).let(guarded.sdk)
+        doAnswer { reply(it.arguments.last()); guarded.sent }.`when`(helper).let(guarded.sdk)
     }
 
     /** Calls the listener's only method, the way the SDK does. */
@@ -464,32 +447,8 @@ class SamsungIapFlutterPluginTest {
             assertEquals("invalid", error.details)
             verify(helper, never()).let(guarded.sdk)
         },
-        "times out only at its limit" to { guarded ->
-            answer(guarded)
-            val plugin = initializedPlugin()
-            val timeout = guarded.timeout
-
-            val result = async { runCatching { guarded.call(plugin) } }
-            if (timeout == null) {
-                advanceTimeBy(24.hours)
-                runCurrent()
-                assertFalse(result.isCompleted, "still waiting after 24h")
-                result.cancel()
-            } else {
-                advanceTimeBy(timeout - 1.milliseconds)
-                runCurrent()
-                assertFalse(result.isCompleted, "still waiting just before $timeout")
-                advanceTimeBy(1.milliseconds)
-                runCurrent()
-                assertTrue(result.isCompleted, "timed out at $timeout")
-
-                val error = result.await().exceptionOrNull() as FlutterError
-                assertEquals("timeout", error.code)
-                assertEquals(guarded.name, error.details)
-            }
-        },
         "throws the SDK error" to { guarded ->
-            answer(guarded) { guarded.callBack(it, errorVo(-1005), guarded.emptyValue) }
+            answer(guarded) { guarded.callBack(it, errorVo(-1005), null) }
 
             val error = assertFailsWith<FlutterError> { guarded.call(initializedPlugin()) }
 
@@ -509,7 +468,7 @@ class SamsungIapFlutterPluginTest {
     )
 
     @TestFactory
-    fun guardedSdkCalls() = guardedCalls.flatMap { guarded ->
+    fun guardedSdkCalls() = (inquiries + payment).flatMap { guarded ->
         guards.map { (case, check) ->
             DynamicTest.dynamicTest("${guarded.name} $case") {
                 reset(helper)
@@ -517,6 +476,42 @@ class SamsungIapFlutterPluginTest {
                 runTest { check(guarded) }
             }
         }
+    }
+
+    @TestFactory
+    fun inquiriesTimeOutAfter30Seconds() = inquiries.map { inquiry ->
+        DynamicTest.dynamicTest(inquiry.name) {
+            reset(helper)
+            runTest {
+                answer(inquiry)
+                val plugin = initializedPlugin()
+
+                val result = async { runCatching { inquiry.call(plugin) } }
+                advanceTimeBy(INQUIRY_TIMEOUT - 1.milliseconds)
+                runCurrent()
+                assertFalse(result.isCompleted, "still waiting just before 30s")
+                advanceTimeBy(1.milliseconds)
+                runCurrent()
+                assertTrue(result.isCompleted, "timed out at 30s")
+
+                val error = result.await().exceptionOrNull() as FlutterError
+                assertEquals("timeout", error.code)
+                assertEquals(inquiry.name, error.details)
+            }
+        }
+    }
+
+    @Test
+    fun startPaymentStillWaitsAfter24Hours() = runTest {
+        answer(payment)
+        val plugin = initializedPlugin()
+
+        val result = async { plugin.startPayment("coins_100", null, null) }
+        advanceTimeBy(24.hours)
+        runCurrent()
+
+        assertFalse(result.isCompleted, "still waiting after 24h")
+        result.cancel()
     }
 
     @Test
