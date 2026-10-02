@@ -146,10 +146,12 @@ class OwnedProduct {
   final String rawJson;
 
   /// The Galaxy Store page where the user manages this subscription and
-  /// agrees to a price change.
+  /// agrees to a price change. Only subscriptions have a detail page.
   ///
   /// A string rather than a [Uri], because [Uri] lowercases the host and
-  /// Samsung documents it as `SubscriptionDetail`.
+  /// Samsung documents it as `SubscriptionDetail`. Open it with an API that
+  /// takes a string, such as url_launcher's `launchUrlString`, not
+  /// `launchUrl(Uri.parse(link))`.
   String get subscriptionDetailLink =>
       'samsungapps://SubscriptionDetail?purchaseId='
       '${Uri.encodeQueryComponent(purchaseId)}';

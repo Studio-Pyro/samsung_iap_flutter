@@ -72,7 +72,8 @@ enum OwnedProductFilter {
 
 /// Whether an owned product has been acknowledged.
 enum AcknowledgedStatus {
-  /// The installed Galaxy Store is too old to report the status.
+  /// Galaxy Store did not report the status, for example because it is too
+  /// old.
   unsupported,
 
   /// Not acknowledged yet.
