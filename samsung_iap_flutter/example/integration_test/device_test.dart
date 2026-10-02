@@ -216,10 +216,16 @@ void main() {
           );
           fail('Samsung accepted an instant downgrade: $purchase');
         } on SamsungIapException catch (e) {
-          // TODO(user): record the kind and detail code Samsung reports here,
-          // then assert them.
+          // TODO(user): S5 acceptance #2 and issue #1 story 44. Record the
+          // detail code Samsung reports for an instant downgrade, and assert
+          // it here.
           debugPrint('instant downgrade: $e');
-          expect(e.kind, isNot(SamsungIapErrorKind.userCanceled));
+          expect(e.kind, SamsungIapErrorKind.general, reason: '$e');
+          expect(
+            e.detailCode,
+            isNot(anyOf(1005, 1006, 1012, 1014)),
+            reason: 'a plan-change error other than a refused downgrade: $e',
+          );
         }
       }, timeout: const Timeout(Duration(minutes: 5)));
     },

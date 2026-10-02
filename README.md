@@ -95,8 +95,15 @@ to the cheaper tier first, for example with the example app. Pass the cheaper ti
   the new purchase is for that tier and that it is in the owned list. Tap through the plan-change
   UI.
 - The downgrade test then tries to change back with `instantProratedCharge`, which Samsung allows
-  only for upgrades. It expects a `SamsungIapException` and prints it. Record its kind and detail
-  code in the test, where a TODO marks the place.
+  only for upgrades. It expects a `general` error whose detail code is not one of the documented
+  plan-change codes (1005, 1006, 1012 and 1014), and prints it. Record the detail code in the test,
+  where a TODO marks the place.
+
+Each run leaves the tester on the pricier tier, so put the tester back on the cheaper tier before
+you run the tests again. If Samsung ever accepts the downgrade, it may schedule a change for the
+next renewal instead of failing. Until that renewal, Samsung refuses further changes for the
+tester, and the upgrade test most likely fails with detail code 1014. Wait for the renewal, or use
+another license tester.
 
 ```sh
 flutter test integration_test/device_test.dart \
