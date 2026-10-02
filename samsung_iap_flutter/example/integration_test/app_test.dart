@@ -48,6 +48,22 @@ void main() {
       expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
     });
 
+    test('purchase fails fast with storeUnavailable', () async {
+      final stopwatch = Stopwatch()..start();
+
+      await expectLater(
+        iap.purchase('coins_100', obfuscatedAccountId: 'account'),
+        throwsA(
+          isA<SamsungIapException>().having(
+            (e) => e.kind,
+            'kind',
+            SamsungIapErrorKind.storeUnavailable,
+          ),
+        ),
+      );
+      expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
+    });
+
     testWidgets('the example shows the store status and the error', (
       tester,
     ) async {
