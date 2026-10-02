@@ -42,6 +42,10 @@ class _HomePageState extends State<HomePage> {
   String? _purchase;
   bool _buying = false;
   List<String> _ackResults = const [];
+  String? _planFrom;
+  String? _planTo;
+  ProrationMode _proration = ProrationMode.instantProratedDate;
+  String? _planChange;
   String? _error;
 
   Future<void> _run(Future<void> Function() action) async {
@@ -92,6 +96,35 @@ class _HomePageState extends State<HomePage> {
     }
   });
 
+  Future<void> _changePlan(String from, String to) => _run(() async {
+    setState(() {
+      _planChange = null;
+      _buying = true;
+    });
+    try {
+      final purchase = await _iap.changeSubscriptionPlan(
+        fromProductId: from,
+        toProductId: to,
+        prorationMode: _proration,
+      );
+      setState(
+        () => _planChange =
+            'Changed to ${purchase.productId}: purchase '
+            '${purchase.purchaseId}, order ${purchase.orderId}',
+      );
+    } on SamsungIapException catch (e) {
+      if (e.kind != SamsungIapErrorKind.userCanceled) {
+        setState(
+          () => _planChange = 'Plan change failed: detail code ${e.detailCode}',
+        );
+        rethrow;
+      }
+      setState(() => _planChange = 'Cancelled');
+    } finally {
+      setState(() => _buying = false);
+    }
+  });
+
   /// Runs [call], `consume` or `acknowledge`, on [product] and shows each
   /// result, then reloads the owned products to show the change.
   Future<void> _ackAndReload(
@@ -115,6 +148,10 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final products = _products;
     final owned = _owned;
+    final subscriptions = [
+      for (final product in products ?? const <SamsungProduct>[])
+        if (product.type == SamsungProductType.subscription) product.id,
+    ];
     return Scaffold(
       appBar: AppBar(title: const Text('Samsung IAP Example')),
       body: ListView(
@@ -159,6 +196,7 @@ class _HomePageState extends State<HomePage> {
                 child: Text('Buy ${product.formattedPrice}'),
               ),
             ),
+          if (subscriptions.isNotEmpty) ..._planChanger(subscriptions),
           if (owned != null) Text('${owned.length} owned products'),
           for (final product in owned ?? const <OwnedProduct>[])
             ListTile(
@@ -183,6 +221,50 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  /// Picks two subscription tiers and a proration mode, and changes the plan.
+  List<Widget> _planChanger(List<String> subscriptions) {
+    final from = subscriptions.contains(_planFrom) ? _planFrom : null;
+    final to = subscriptions.contains(_planTo) ? _planTo : null;
+    DropdownButton<String> tier(
+      String hint,
+      String? value,
+      void Function(String?) onChanged,
+    ) => DropdownButton(
+      hint: Text(hint),
+      value: value,
+      items: [
+        for (final id in subscriptions)
+          DropdownMenuItem(value: id, child: Text(id)),
+      ],
+      onChanged: onChanged,
+    );
+    return [
+      Wrap(
+        spacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          tier('From', from, (id) => setState(() => _planFrom = id)),
+          tier('To', to, (id) => setState(() => _planTo = id)),
+          DropdownButton(
+            value: _proration,
+            items: [
+              for (final mode in ProrationMode.values)
+                DropdownMenuItem(value: mode, child: Text(mode.name)),
+            ],
+            onChanged: (mode) => setState(() => _proration = mode!),
+          ),
+          FilledButton.tonal(
+            onPressed: from == null || to == null || _buying
+                ? null
+                : () => _changePlan(from, to),
+            child: const Text('Change plan'),
+          ),
+        ],
+      ),
+      if (_planChange case final result?) Text(result),
+    ];
   }
 
   static String _describe(SamsungProduct product) => [
