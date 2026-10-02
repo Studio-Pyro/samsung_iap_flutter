@@ -273,7 +273,7 @@ class SamsungIapFlutterPluginTest : PluginTestBase() {
         }
 
     private fun answerPayment(purchase: PurchaseVo) {
-        answer(payment) { payment.callBack(it, errorVo(0), purchase) }
+        answer(paymentCall) { paymentCall.callBack(it, errorVo(0), purchase) }
     }
 
     @Test
@@ -323,7 +323,7 @@ class SamsungIapFlutterPluginTest : PluginTestBase() {
     @Test
     fun startPaymentReportsASuccessWithoutAPurchaseAsResultUnknown() = runTest {
         for (error in listOf(errorVo(0), null)) {
-            answer(payment) { payment.callBack(it, error, null) }
+            answer(paymentCall) { paymentCall.callBack(it, error, null) }
 
             val failure = assertFailsWith<FlutterError> {
                 initializedPlugin().startPayment("coins_100", null, null)
