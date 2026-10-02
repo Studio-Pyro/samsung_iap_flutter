@@ -264,6 +264,16 @@ void main() {
     });
 
     test('names the broken rule in the message', () async {
+      await expectLater(
+        iap.purchase(' '),
+        throwsA(
+          isA<SamsungIapException>().having(
+            (e) => e.message,
+            'message',
+            'The product ID is empty.',
+          ),
+        ),
+      );
       final messages = {
         ('a' * 65, null):
             'The obfuscated account ID is longer than 64 '

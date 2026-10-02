@@ -88,12 +88,7 @@ class SamsungIap {
     String? obfuscatedAccountId,
     String? obfuscatedProfileId,
   }) async {
-    if (productId.trim().isEmpty) {
-      throw const SamsungIapException(
-        SamsungIapErrorKind.invalidArgument,
-        message: 'The product ID is empty.',
-      );
-    }
+    _checkProductId('product ID', productId);
     _checkObfuscatedIds(obfuscatedAccountId, obfuscatedProfileId);
     return await _platform.purchase(
       productId,
@@ -138,6 +133,17 @@ class SamsungIap {
   Future<List<PurchaseAckResult>> acknowledge(List<String> purchaseIds) async {
     _checkIdBatch('purchase', purchaseIds);
     return await _platform.acknowledge(purchaseIds);
+  }
+}
+
+/// Rejects a blank product ID. The SDK refuses an empty one silently, which
+/// would surface as busy.
+void _checkProductId(String name, String id) {
+  if (id.trim().isEmpty) {
+    throw SamsungIapException(
+      SamsungIapErrorKind.invalidArgument,
+      message: 'The $name is empty.',
+    );
   }
 }
 
