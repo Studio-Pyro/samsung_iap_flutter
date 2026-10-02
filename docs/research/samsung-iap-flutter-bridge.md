@@ -817,11 +817,12 @@ Each slice ships on its own: all three packages build, tests pass, and the examp
 
 ### S7: Error hardening
 - **Scope:** the full §7 table; `detailCode` parsing; the `dialogShown` flag; the TEST_FAILURE device run; doc comments on every kind.
-- **Files:** `and/lib/src/errors.dart`, `pi/lib/src/models/exception.dart`, tests.
+- **Files:** `and/lib/src/errors.dart`, `pi/lib/src/exception.dart`, tests.
 - **Acceptance:**
   - Each §7 row has a unit test.
   - A TEST_FAILURE device run shows the expected detail code for all seven calls: `getProducts`, `getOwnedProducts`, `purchase`, `consume`, `acknowledge`, `changeSubscriptionPlan` and `getPromotionEligibility`. Samsung documents codes for the first four only (§2.4).
   - The -1014/-1015 mapping is confirmed on a device signed out of the Samsung account, or recorded as unobservable.
+  - Both device results are recorded in the root README, under "Integration tests".
 - **Tests:** table-driven.
 
 ### S8: Docs, example, publishing
@@ -889,7 +890,7 @@ Rejected alternative: verifying purchases on our own backend and mirroring them 
 | 2 | Error model | One `SamsungIapException` with a `kind` enum, plus the raw `code`, `message` and `dialogShown`. Dart 3 `switch` over the enum gives exhaustiveness. |
 | 3 | `showErrorDialog` | Defaults to `true`, matching the SDK. Apps that own their UI pass `false`. `dialogShown` prevents double messaging. |
 | 4 | Store pre-check | Use the SDK's `HelperUtil.isInstalledAppsPackage` / `isEnabledAppsPackage` / `isValidAppsPackage`. These avoid the dialog side effect and include the signature check. A removed helper breaks the build, so it shows up when the SDK is bumped. The SDK is pinned to exactly `6.5.2`. The plugin never triggers Samsung's install/enable dialog itself; it exposes `storeStatus()`. |
-| 4b | Timeouts | A fixed 30s timeout on inquiry calls (`getProducts`, `getOwnedProducts`, promotion eligibility), as a backstop against callbacks that never arrive. There is no timeout on `purchase` or plan change, because users can stay on the payment UI indefinitely and those calls return `false` instead of hanging. Not configurable. |
+| 4b | Timeouts | A fixed 30s timeout on inquiry calls (`getProducts`, `getOwnedProducts`, promotion eligibility) and on `consume` and `acknowledge`, as a backstop against callbacks that never arrive. There is no timeout on `purchase` or plan change, because users can stay on the payment UI indefinitely and those calls return `false` instead of hanging. Not configurable. |
 | 5 | Template leftovers | Delete `MethodChannelSamsungIapFlutter` and the Fluttium example flows. Pigeon and `integration_test` replace them. |
 | 6 | Deprecated fields | `isConsumable` and `passThroughParam` are not exposed. `rawJson` carries them. |
 | 7 | Consume/acknowledge | Both are in the plugin (S4). The README explains how to choose per product, and also describes the server-side alternative [API-ACK]. |
