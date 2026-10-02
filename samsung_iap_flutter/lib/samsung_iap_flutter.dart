@@ -114,9 +114,10 @@ class SamsungIap {
   /// [SamsungIapErrorKind.invalidArgument] for an empty list, an empty ID or
   /// one that contains a comma, [SamsungIapErrorKind.storeUnavailable] when
   /// Galaxy Store is not usable, and [SamsungIapErrorKind.network] when
-  /// Samsung does not answer within 30 seconds. Samsung may still apply a
-  /// call that timed out, and a retry then reports
-  /// [AckStatus.alreadyProcessed].
+  /// Samsung does not answer within 30 seconds. Unlike a failed [purchase],
+  /// a [SamsungIapErrorKind.network] failure here is safe to retry as is:
+  /// Samsung may still apply a call that timed out, and the retry then
+  /// reports [AckStatus.alreadyProcessed].
   Future<List<PurchaseAckResult>> consume(List<String> purchaseIds) async {
     _checkPurchaseIds(purchaseIds);
     return await _platform.consume(purchaseIds);

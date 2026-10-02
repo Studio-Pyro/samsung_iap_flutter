@@ -83,6 +83,71 @@ rejects these values with `invalidArgument` before it calls Samsung:
 - An empty ID. Pass `null` to omit it.
 - A profile ID without an account ID.
 
+## Consuming and acknowledging
+
+After you grant a purchase, tell Samsung it is done. Pick the call by what the product is:
+
+- **Consume repeatable items**, such as coins or credits. Until you consume a purchase, buying the
+  item again fails with `alreadyOwned`.
+- **Acknowledge permanent unlocks and subscriptions.** `acknowledge` marks the purchase as handled
+  and keeps it owned. `OwnedProduct.acknowledgedStatus` then reads `acknowledged`.
+
+Samsung registers both kinds as the same item type in Seller Portal, so the choice is yours, per
+product. Samsung asks you to send the purchase IDs of one batch in a single call.
+
+```dart
+final results = await iap.consume([purchase.purchaseId]);
+for (final result in results) {
+  if (!result.isProcessed) log('${result.purchaseId}: ${result.status}');
+}
+```
+
+A batch can partly fail. The call returns one `PurchaseAckResult` per purchase, and each one has
+its own `status`. The call throws a `SamsungIapException` only when the whole call fails, for
+example when Galaxy Store is not usable.
+
+Handle the results like this:
+
+- **Treat `alreadyProcessed` as done.** `isProcessed` is `true` for `success` and for
+  `alreadyProcessed`, which means an earlier call already consumed or acknowledged the purchase.
+- **Retry on `network` and `serviceError`.** A `network` exception fails the whole call, and
+  `serviceError` fails one purchase. A retry is safe: a purchase that an earlier call handled
+  reports `alreadyProcessed`. This includes a call that timed out after 30 seconds but reached
+  Samsung.
+- **Do not retry the other statuses.** `invalidPurchaseId`, `failedOrder`, `invalidProductType`
+  and `unauthorized` describe the purchase, not the connection. Log them with `statusCode` and
+  `message`.
+- **Update Galaxy Store for `storeUpdateRequired`.** `acknowledge` needs Galaxy Store 4.5.90 or
+  later. On an older version, it throws `storeUpdateRequired` before it calls Samsung.
+
+The plugin rejects these arguments with `invalidArgument` before it calls Samsung:
+
+- An empty list.
+- An empty ID, or an ID that contains a comma.
+
+### Consume or acknowledge on your server
+
+If your backend verifies purchases, it can also consume or acknowledge them, and the app then does
+not call `consume` or `acknowledge`. Send the purchase ID from the app to your server. The server
+verifies it with Samsung's receipt API, and then calls the Galaxy Store Developer API:
+
+```http
+PATCH https://devapi.samsungapps.com/iap/v6/applications/<packageName>/purchases/<purchaseId>
+Authorization: Bearer <access token>
+service-account-id: <service account ID>
+Content-Type: application/json
+
+{"action": "consume"}
+```
+
+Send `{"action": "acknowledge"}` to acknowledge. The response has a `statusCode` per purchase, with
+the same codes as `PurchaseAckResult.statusCode`. With this approach, the server that grants a
+purchase is also the one that consumes it, so the two cannot get out of step. See Samsung's
+[Purchase Acknowledgment API][ack_api_link] for the batch form, and
+[Get Started with the IAP APIs][iap_api_link] for the access token.
+
+[ack_api_link]: https://developer.samsung.com/iap/api/iap-purchase-acknowledgment.html
+[iap_api_link]: https://developer.samsung.com/iap/api/get-started.html
 [coverage_badge]: coverage_badge.svg
 [license_badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [license_link]: https://opensource.org/licenses/MIT
