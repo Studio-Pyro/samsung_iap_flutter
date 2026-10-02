@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:samsung_iap_flutter_platform_interface/samsung_iap_flutter_platform_interface.dart';
 
 export 'package:samsung_iap_flutter_platform_interface/samsung_iap_flutter_platform_interface.dart'
@@ -66,4 +68,73 @@ class SamsungIap {
   Future<List<OwnedProduct>> getOwnedProducts({
     OwnedProductFilter filter = OwnedProductFilter.all,
   }) => _platform.getOwnedProducts(filter);
+
+  /// Shows Samsung's payment sheet for [productId] and returns the purchase.
+  ///
+  /// There is no timeout, so the user can take as long as they need. Pass
+  /// [obfuscatedAccountId], and optionally [obfuscatedProfileId], to let your
+  /// server match the purchase to a user. Each must be a hash of your own
+  /// IDs, at most 64 bytes in UTF-8 and not an email address. A profile ID
+  /// needs an account ID.
+  ///
+  /// Throws a [SamsungIapException]. Its kind tells the app what to do:
+  ///
+  /// - [SamsungIapErrorKind.userCanceled]: the user closed the sheet. Not an
+  ///   error, so show nothing.
+  /// - [SamsungIapErrorKind.alreadyOwned] and
+  ///   [SamsungIapErrorKind.purchaseResultUnknown]: call [getOwnedProducts]
+  ///   and grant what it returns before telling the user anything.
+  /// - [SamsungIapErrorKind.busy]: Samsung refused to start, so nothing was
+  ///   charged. Retry after a short wait.
+  /// - [SamsungIapErrorKind.invalidArgument]: an empty product ID, or an
+  ///   obfuscated ID that breaks the rules above. Nothing is sent to Samsung.
+  Future<SamsungPurchase> purchase(
+    String productId, {
+    String? obfuscatedAccountId,
+    String? obfuscatedProfileId,
+  }) async {
+    if (productId.trim().isEmpty) {
+      throw const SamsungIapException(
+        SamsungIapErrorKind.invalidArgument,
+        message: 'The product ID is empty.',
+      );
+    }
+    _checkObfuscatedIds(obfuscatedAccountId, obfuscatedProfileId);
+    return await _platform.purchase(
+      productId,
+      obfuscatedAccountId: obfuscatedAccountId,
+      obfuscatedProfileId: obfuscatedProfileId,
+    );
+  }
+}
+
+// The same pattern the SDK refuses with, so the app gets invalidArgument
+// instead of the SDK's silent refusal, which surfaces as busy.
+final _email = RegExp(
+  r'^[_A-Za-z0-9-]+(\.[_A-Za-z0-9-]+)*@[A-Za-z0-9]+(\.[A-Za-z0-9]+)*'
+  r'(\.[A-Za-z]{2,})$',
+);
+
+void _checkObfuscatedIds(String? accountId, String? profileId) {
+  if (profileId != null && accountId == null) {
+    throw const SamsungIapException(
+      SamsungIapErrorKind.invalidArgument,
+      message: 'An obfuscated profile ID needs an obfuscated account ID.',
+    );
+  }
+  for (final (name, id) in [('account', accountId), ('profile', profileId)]) {
+    if (id == null) continue;
+    final problem = switch (id) {
+      '' => 'is empty; pass null to omit it',
+      _ when utf8.encode(id).length > 64 => 'is longer than 64 UTF-8 bytes',
+      _ when _email.hasMatch(id) => 'looks like an email address',
+      _ => null,
+    };
+    if (problem != null) {
+      throw SamsungIapException(
+        SamsungIapErrorKind.invalidArgument,
+        message: 'The obfuscated $name ID $problem.',
+      );
+    }
+  }
 }
