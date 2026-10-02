@@ -149,11 +149,20 @@ Some checks cannot be automated. Do them by hand in the example app, which start
     in **To**, and `instantProratedCharge`. Tap **Change plan**. The app shows the error and its
     detail code. Pick `deferred`, tap **Change plan** again and complete the plan-change UI. The
     app shows `Changed to <product ID>` with the purchase and order IDs.
-12. Check that a free trial does not apply again. This step uses up the trial for the tester, so do
-    it last, with the subscription you passed in `SAMSUNG_IAP_TRIAL_ID`. Tap **Get products**. The
-    row of the trial subscription shows **Free trial available**. Tap **Buy** on it and complete
-    the payment. Tap **Get products** again. The badge is gone, because Samsung now reports
-    `regularPrice`. To run the promotion test again, use a different tester or a new subscription.
+12. Check that a free trial does not apply again, after a purchase and after a re-subscription. This
+    step uses up the trial for the tester, so do it last, with the subscription you passed in
+    `SAMSUNG_IAP_TRIAL_ID`. To run the promotion test again, use a different tester or a new
+    subscription.
+    1. Tap **Get products**. The row of the trial subscription shows **Free trial available**.
+    2. Tap **Buy** on it and complete the payment. Tap **Get products** again. The badge is gone.
+    3. In Galaxy Store, open **Menu > Subscription**, select the subscription and tap
+       **Unsubscribe**. In TEST mode, the subscription expires at the end of its 10-minute cycle,
+       for example at hh:10 or hh:20. Wait until then.
+    4. Tap **Get products**. The badge is still gone. Tap **Buy** on the subscription and complete
+       the payment, then tap **Get products** again. The badge is still gone.
+
+    The README of the `samsung_iap_flutter` package expects `regularPrice` after a purchase and
+    after a re-subscription. If the badge comes back in either check, update that README.
 
 Then check the R8 keep rules of the plugin. Run a minified release build, tap **Buy** on a product the
 tester does not own, and complete the payment. The app shows the purchase and order IDs.
