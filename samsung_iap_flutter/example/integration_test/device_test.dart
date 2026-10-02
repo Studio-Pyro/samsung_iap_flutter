@@ -43,10 +43,7 @@ void main() {
   });
 
   test('getOwnedProducts lists what the tester owns', () async {
-    final ownedIds = [
-      for (final id in ownedIdsDefine.split(','))
-        if (id.trim().isNotEmpty) id.trim(),
-    ];
+    final ownedIds = idsFrom(ownedIdsDefine);
 
     final owned = await iap.getOwnedProducts();
 

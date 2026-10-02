@@ -5,8 +5,11 @@ import 'package:samsung_iap_flutter/samsung_iap_flutter.dart';
 const productIdsDefine = String.fromEnvironment('SAMSUNG_IAP_PRODUCT_IDS');
 
 /// [productIdsDefine] as a list.
-List<String> get productIds => [
-  for (final id in productIdsDefine.split(','))
+List<String> get productIds => idsFrom(productIdsDefine);
+
+/// Splits a comma-separated `--dart-define` into trimmed, non-empty IDs.
+List<String> idsFrom(String define) => [
+  for (final id in define.split(','))
     if (id.trim().isNotEmpty) id.trim(),
 ];
 
