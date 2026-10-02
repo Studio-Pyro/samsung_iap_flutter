@@ -102,6 +102,22 @@ void main() {
       expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
     });
 
+    test('getPromotionEligibility fails fast with storeUnavailable', () async {
+      final stopwatch = Stopwatch()..start();
+
+      await expectLater(
+        iap.getPromotionEligibility(['monthly', 'yearly']),
+        throwsA(
+          isA<SamsungIapException>().having(
+            (e) => e.kind,
+            'kind',
+            SamsungIapErrorKind.storeUnavailable,
+          ),
+        ),
+      );
+      expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
+    });
+
     testWidgets('the example shows the store status and the error', (
       tester,
     ) async {
