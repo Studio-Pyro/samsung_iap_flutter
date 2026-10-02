@@ -84,6 +84,20 @@ void main() {
     }
   });
 
+  test('parseMinorStatus', () {
+    final cases = {
+      'UNIDENTIFIED': MinorStatus.unidentified,
+      'NOT_MINOR': MinorStatus.notMinor,
+      'MINOR': MinorStatus.minor,
+      '': MinorStatus.unknown,
+      'Y': MinorStatus.unknown,
+      'minor': MinorStatus.unknown,
+    };
+    for (final MapEntry(key: input, value: expected) in cases.entries) {
+      expect(parseMinorStatus(input), expected, reason: input);
+    }
+  });
+
   test('parsePriceChangeMode', () {
     final cases = {
       'PRICE_INCREASE_USER_AGREEMENT_REQUIRED':

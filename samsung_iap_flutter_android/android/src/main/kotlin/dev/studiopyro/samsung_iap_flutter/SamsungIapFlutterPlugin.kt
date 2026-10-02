@@ -7,6 +7,7 @@ import com.samsung.android.sdk.iap.lib.util.HelperUtil
 import com.samsung.android.sdk.iap.lib.vo.ErrorVo
 import com.samsung.android.sdk.iap.lib.vo.OwnedProductVo
 import com.samsung.android.sdk.iap.lib.vo.ProductVo
+import com.samsung.android.sdk.iap.lib.vo.PurchaseVo
 import com.samsung.android.sdk.iap.lib.vo.SubscriptionPriceChangeVo
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import java.util.concurrent.atomic.AtomicBoolean
@@ -64,6 +65,22 @@ class SamsungIapFlutterPlugin(
         return awaitSdk("getOwnedList", INQUIRY_TIMEOUT) { done ->
             helper.getOwnedList(filter.toSdk()) { error: ErrorVo?, owned: ArrayList<OwnedProductVo>? ->
                 done(error) { owned!!.map { it.toPlatform() } }
+            }
+        }
+    }
+
+    // Without the store check, Samsung's payment screen shows its own
+    // install, enable or update dialog for Galaxy Store.
+    override suspend fun startPayment(
+        itemId: String,
+        obfuscatedAccountId: String?,
+        obfuscatedProfileId: String?,
+    ): PlatformPurchase {
+        val helper = requireHelper()
+        requireStore()
+        return awaitSdk("startPayment") { done ->
+            helper.startPayment(itemId, obfuscatedAccountId, obfuscatedProfileId) { error: ErrorVo?, purchase: PurchaseVo? ->
+                done(error) { purchase!!.toPlatform() }
             }
         }
     }
@@ -203,6 +220,23 @@ private fun OwnedProductVo.toPlatform() = PlatformOwnedProduct(
     subscriptionEndDate = subscriptionEndDate.orEmpty(),
     subscriptionPriceChange = subscriptionPriceChange?.toPlatform(),
     acknowledgedStatus = acknowledgedStatus?.name.orEmpty(),
+    obfuscatedAccountId = obfuscatedAccountId.orEmpty(),
+    obfuscatedProfileId = obfuscatedProfileId.orEmpty(),
+    json = jsonString.orEmpty(),
+)
+
+private fun PurchaseVo.toPlatform() = PlatformPurchase(
+    itemId = itemId.orEmpty(),
+    itemName = itemName.orEmpty(),
+    itemPrice = itemPrice,
+    itemPriceString = itemPriceString.orEmpty(),
+    currencyCode = currencyCode.orEmpty(),
+    type = type.orEmpty(),
+    paymentId = paymentId.orEmpty(),
+    purchaseId = purchaseId.orEmpty(),
+    orderId = orderId.orEmpty(),
+    purchaseDate = purchaseDate.orEmpty(),
+    minorStatus = minorStatus?.name.orEmpty(),
     obfuscatedAccountId = obfuscatedAccountId.orEmpty(),
     obfuscatedProfileId = obfuscatedProfileId.orEmpty(),
     json = jsonString.orEmpty(),

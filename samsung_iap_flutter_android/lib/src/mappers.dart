@@ -47,6 +47,24 @@ OwnedProduct ownedProductFromPlatform(PlatformOwnedProduct p) => OwnedProduct(
   rawJson: p.json,
 );
 
+/// Converts the wire mirror of `PurchaseVo` into the public model.
+SamsungPurchase purchaseFromPlatform(PlatformPurchase p) => SamsungPurchase(
+  productId: p.itemId,
+  name: p.itemName,
+  purchaseId: p.purchaseId,
+  paymentId: p.paymentId,
+  orderId: p.orderId,
+  type: parseProductType(p.type),
+  purchaseDate: parseLocalDateTime(p.purchaseDate),
+  minorStatus: parseMinorStatus(p.minorStatus),
+  obfuscatedAccountId: nonEmptyOrNull(p.obfuscatedAccountId),
+  obfuscatedProfileId: nonEmptyOrNull(p.obfuscatedProfileId),
+  price: finiteOrNull(p.itemPrice),
+  formattedPrice: p.itemPriceString,
+  currencyCode: p.currencyCode,
+  rawJson: p.json,
+);
+
 SubscriptionPriceChange? _priceChange(PlatformSubscriptionPriceChange? c) =>
     c == null
     ? null

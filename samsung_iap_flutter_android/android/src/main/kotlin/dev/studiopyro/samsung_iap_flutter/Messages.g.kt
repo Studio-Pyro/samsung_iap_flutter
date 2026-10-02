@@ -535,6 +535,101 @@ data class PlatformOwnedProduct (
     return "PlatformOwnedProduct(itemId=$itemId, itemName=$itemName, itemPrice=$itemPrice, itemPriceString=$itemPriceString, currencyCode=$currencyCode, type=$type, paymentId=$paymentId, purchaseId=$purchaseId, purchaseDate=$purchaseDate, subscriptionEndDate=$subscriptionEndDate, subscriptionPriceChange=$subscriptionPriceChange, acknowledgedStatus=$acknowledgedStatus, obfuscatedAccountId=$obfuscatedAccountId, obfuscatedProfileId=$obfuscatedProfileId, json=$json)"
   }
 }
+
+/**
+ * The `PurchaseVo` fields the public model uses, with the same rules as
+ * [PlatformProduct].
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class PlatformPurchase (
+  val itemId: String,
+  val itemName: String,
+  val itemPrice: Double? = null,
+  val itemPriceString: String,
+  val currencyCode: String,
+  val type: String,
+  val paymentId: String,
+  val purchaseId: String,
+  val orderId: String,
+  val purchaseDate: String,
+  /** The SDK enum constant's name, or `""`. */
+  val minorStatus: String,
+  val obfuscatedAccountId: String,
+  val obfuscatedProfileId: String,
+  val json: String
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): PlatformPurchase {
+      val itemId = pigeonVar_list[0] as String
+      val itemName = pigeonVar_list[1] as String
+      val itemPrice = pigeonVar_list[2] as Double?
+      val itemPriceString = pigeonVar_list[3] as String
+      val currencyCode = pigeonVar_list[4] as String
+      val type = pigeonVar_list[5] as String
+      val paymentId = pigeonVar_list[6] as String
+      val purchaseId = pigeonVar_list[7] as String
+      val orderId = pigeonVar_list[8] as String
+      val purchaseDate = pigeonVar_list[9] as String
+      val minorStatus = pigeonVar_list[10] as String
+      val obfuscatedAccountId = pigeonVar_list[11] as String
+      val obfuscatedProfileId = pigeonVar_list[12] as String
+      val json = pigeonVar_list[13] as String
+      return PlatformPurchase(itemId, itemName, itemPrice, itemPriceString, currencyCode, type, paymentId, purchaseId, orderId, purchaseDate, minorStatus, obfuscatedAccountId, obfuscatedProfileId, json)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      itemId,
+      itemName,
+      itemPrice,
+      itemPriceString,
+      currencyCode,
+      type,
+      paymentId,
+      purchaseId,
+      orderId,
+      purchaseDate,
+      minorStatus,
+      obfuscatedAccountId,
+      obfuscatedProfileId,
+      json,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as PlatformPurchase
+    return MessagesPigeonUtils.deepEquals(this.itemId, other.itemId) && MessagesPigeonUtils.deepEquals(this.itemName, other.itemName) && MessagesPigeonUtils.deepEquals(this.itemPrice, other.itemPrice) && MessagesPigeonUtils.deepEquals(this.itemPriceString, other.itemPriceString) && MessagesPigeonUtils.deepEquals(this.currencyCode, other.currencyCode) && MessagesPigeonUtils.deepEquals(this.type, other.type) && MessagesPigeonUtils.deepEquals(this.paymentId, other.paymentId) && MessagesPigeonUtils.deepEquals(this.purchaseId, other.purchaseId) && MessagesPigeonUtils.deepEquals(this.orderId, other.orderId) && MessagesPigeonUtils.deepEquals(this.purchaseDate, other.purchaseDate) && MessagesPigeonUtils.deepEquals(this.minorStatus, other.minorStatus) && MessagesPigeonUtils.deepEquals(this.obfuscatedAccountId, other.obfuscatedAccountId) && MessagesPigeonUtils.deepEquals(this.obfuscatedProfileId, other.obfuscatedProfileId) && MessagesPigeonUtils.deepEquals(this.json, other.json)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.itemId)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.itemName)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.itemPrice)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.itemPriceString)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.currencyCode)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.type)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.paymentId)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.purchaseId)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.orderId)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.purchaseDate)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.minorStatus)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.obfuscatedAccountId)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.obfuscatedProfileId)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.json)
+    return result
+  }
+  override fun toString(): String {
+    return "PlatformPurchase(itemId=$itemId, itemName=$itemName, itemPrice=$itemPrice, itemPriceString=$itemPriceString, currencyCode=$currencyCode, type=$type, paymentId=$paymentId, purchaseId=$purchaseId, orderId=$orderId, purchaseDate=$purchaseDate, minorStatus=$minorStatus, obfuscatedAccountId=$obfuscatedAccountId, obfuscatedProfileId=$obfuscatedProfileId, json=$json)"
+  }
+}
 private open class MessagesPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
@@ -568,6 +663,11 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
           PlatformOwnedProduct.fromList(it)
         }
       }
+      135.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          PlatformPurchase.fromList(it)
+        }
+      }
       else -> super.readValueOfType(type, buffer)
     }
   }
@@ -597,6 +697,10 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
         stream.write(134)
         writeValue(stream, value.toList())
       }
+      is PlatformPurchase -> {
+        stream.write(135)
+        writeValue(stream, value.toList())
+      }
       else -> super.writeValue(stream, value)
     }
   }
@@ -610,6 +714,8 @@ interface SamsungIapHostApi {
   /** [productIds] is comma-separated; empty means every product. */
   suspend fun getProductsDetails(productIds: String): List<PlatformProduct>
   suspend fun getOwnedList(filter: PlatformOwnedProductFilter): List<PlatformOwnedProduct>
+  /** Completes when the user leaves Samsung's payment sheet. No timeout. */
+  suspend fun startPayment(itemId: String, obfuscatedAccountId: String?, obfuscatedProfileId: String?): PlatformPurchase
 
   companion object {
     /** The codec used by SamsungIapHostApi. */
@@ -682,6 +788,27 @@ interface SamsungIapHostApi {
             CoroutineScope(Dispatchers.Main).launch {
               val wrapped: List<Any?> = try {
                 listOf(api.getOwnedList(filterArg))
+              } catch (exception: Throwable) {
+                MessagesPigeonUtils.wrapError(exception)
+              }
+              reply.reply(wrapped)
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.samsung_iap_flutter_android.SamsungIapHostApi.startPayment$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val itemIdArg = args[0] as String
+            val obfuscatedAccountIdArg = args[1] as String?
+            val obfuscatedProfileIdArg = args[2] as String?
+            CoroutineScope(Dispatchers.Main).launch {
+              val wrapped: List<Any?> = try {
+                listOf(api.startPayment(itemIdArg, obfuscatedAccountIdArg, obfuscatedProfileIdArg))
               } catch (exception: Throwable) {
                 MessagesPigeonUtils.wrapError(exception)
               }
