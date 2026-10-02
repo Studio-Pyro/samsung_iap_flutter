@@ -20,3 +20,28 @@ Future<void> initializeForTest(SamsungIapFlutterAndroid plugin) =>
 
 Matcher throwsKind(SamsungIapErrorKind kind) =>
     throwsA(isA<SamsungIapException>().having((e) => e.kind, 'kind', kind));
+
+/// A `PurchaseVo` mirror with every field set.
+PlatformPurchase purchaseWire({
+  double? itemPrice = 0.99,
+  String type = 'item',
+  String purchaseDate = '2026-01-01 09:00:00',
+  String minorStatus = 'NOT_MINOR',
+  String obfuscatedAccountId = 'account',
+  String obfuscatedProfileId = 'profile',
+}) => PlatformPurchase(
+  itemId: 'coins_100',
+  itemName: '100 coins',
+  itemPrice: itemPrice,
+  itemPriceString: '£0.99',
+  currencyCode: 'GBP',
+  type: type,
+  paymentId: 'TPMTID20260101',
+  purchaseId: 'a1b2c3',
+  orderId: 'S20260101KRA1234567',
+  purchaseDate: purchaseDate,
+  minorStatus: minorStatus,
+  obfuscatedAccountId: obfuscatedAccountId,
+  obfuscatedProfileId: obfuscatedProfileId,
+  json: '{"mPurchaseId":"a1b2c3"}',
+);

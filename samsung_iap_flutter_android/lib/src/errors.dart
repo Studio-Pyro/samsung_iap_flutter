@@ -24,6 +24,7 @@ const Map<int, SamsungIapErrorKind> _sdkKinds = {
 const Map<String, SamsungIapErrorKind> _pluginKinds = {
   'not_sent': SamsungIapErrorKind.busy,
   'not_initialized': SamsungIapErrorKind.notInitialized,
+  'result_unknown': SamsungIapErrorKind.purchaseResultUnknown,
   'store_unavailable': SamsungIapErrorKind.storeUnavailable,
   'store_update_required': SamsungIapErrorKind.storeUpdateRequired,
   'timeout': SamsungIapErrorKind.network,

@@ -6,6 +6,10 @@ import 'package:samsung_iap_flutter_example/main.dart';
 /// Product IDs the license tester is known to own, comma-separated.
 const ownedIdsDefine = String.fromEnvironment('SAMSUNG_IAP_OWNED_IDS');
 
+/// A product the license tester does not own yet, for the interactive
+/// purchase test.
+const purchaseIdDefine = String.fromEnvironment('SAMSUNG_IAP_PURCHASE_ID');
+
 // Runs on a Samsung device with Galaxy Store, signed in as a license tester.
 // See "Integration tests" in the repository README.
 void main() {
@@ -75,4 +79,28 @@ void main() {
     final items = await iap.getOwnedProducts(filter: OwnedProductFilter.item);
     expect(items.map((p) => p.type), everyElement(SamsungProductType.item));
   });
+
+  test(
+    'purchase buys the product while owned products load',
+    () async {
+      final loading = iap.getOwnedProducts();
+
+      final purchase = await iap.purchase(purchaseIdDefine);
+
+      await loading;
+      expect(purchase.productId, purchaseIdDefine);
+      expect(purchase.purchaseId, isNotEmpty);
+      expect(purchase.paymentId, isNotEmpty);
+      expect(purchase.orderId, isNotEmpty);
+      expect(purchase.type, isNot(SamsungProductType.unknown));
+      expect(purchase.minorStatus, isNot(MinorStatus.unknown));
+      expect(purchase.rawJson, contains(purchase.purchaseId));
+      final owned = await iap.getOwnedProducts();
+      expect(owned.map((p) => p.purchaseId), contains(purchase.purchaseId));
+    },
+    skip: purchaseIdDefine.isEmpty
+        ? 'Set SAMSUNG_IAP_PURCHASE_ID to buy a product interactively.'
+        : false,
+    timeout: const Timeout(Duration(minutes: 5)),
+  );
 }

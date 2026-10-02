@@ -2,11 +2,13 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:samsung_iap_flutter_platform_interface/src/enums.dart';
 import 'package:samsung_iap_flutter_platform_interface/src/owned_product.dart';
 import 'package:samsung_iap_flutter_platform_interface/src/product.dart';
+import 'package:samsung_iap_flutter_platform_interface/src/purchase.dart';
 
 export 'src/enums.dart';
 export 'src/exception.dart';
 export 'src/owned_product.dart';
 export 'src/product.dart';
+export 'src/purchase.dart';
 
 /// {@template samsung_iap_flutter_platform}
 /// The interface that implementations of
@@ -67,6 +69,18 @@ abstract class SamsungIapFlutterPlatform extends PlatformInterface {
   /// Fetches the products the user owns that match [filter].
   Future<List<OwnedProduct>> getOwnedProducts(OwnedProductFilter filter) {
     throw UnimplementedError('getOwnedProducts() has not been implemented.');
+  }
+
+  /// Shows Samsung's payment sheet for [productId] and completes when the
+  /// user finishes, however long that takes.
+  ///
+  /// The caller has already validated the arguments.
+  Future<SamsungPurchase> purchase(
+    String productId, {
+    String? obfuscatedAccountId,
+    String? obfuscatedProfileId,
+  }) {
+    throw UnimplementedError('purchase() has not been implemented.');
   }
 }
 

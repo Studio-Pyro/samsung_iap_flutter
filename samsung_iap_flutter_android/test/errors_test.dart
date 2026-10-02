@@ -96,6 +96,7 @@ void main() {
       'store_unavailable': SamsungIapErrorKind.storeUnavailable,
       'store_update_required': SamsungIapErrorKind.storeUpdateRequired,
       'timeout': SamsungIapErrorKind.network,
+      'result_unknown': SamsungIapErrorKind.purchaseResultUnknown,
       'IllegalStateException': SamsungIapErrorKind.unknown,
     };
     for (final MapEntry(key: code, value: kind) in kinds.entries) {

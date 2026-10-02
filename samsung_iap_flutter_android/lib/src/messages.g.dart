@@ -524,6 +524,133 @@ class PlatformOwnedProduct {
   }
 }
 
+/// The `PurchaseVo` fields the public model uses, with the same rules as
+/// [PlatformProduct].
+class PlatformPurchase {
+  PlatformPurchase({
+    required this.itemId,
+    required this.itemName,
+    this.itemPrice,
+    required this.itemPriceString,
+    required this.currencyCode,
+    required this.type,
+    required this.paymentId,
+    required this.purchaseId,
+    required this.orderId,
+    required this.purchaseDate,
+    required this.minorStatus,
+    required this.obfuscatedAccountId,
+    required this.obfuscatedProfileId,
+    required this.json,
+  });
+
+  String itemId;
+
+  String itemName;
+
+  double? itemPrice;
+
+  String itemPriceString;
+
+  String currencyCode;
+
+  String type;
+
+  String paymentId;
+
+  String purchaseId;
+
+  String orderId;
+
+  String purchaseDate;
+
+  /// The SDK enum constant's name, or `""`.
+  String minorStatus;
+
+  String obfuscatedAccountId;
+
+  String obfuscatedProfileId;
+
+  String json;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      itemId,
+      itemName,
+      itemPrice,
+      itemPriceString,
+      currencyCode,
+      type,
+      paymentId,
+      purchaseId,
+      orderId,
+      purchaseDate,
+      minorStatus,
+      obfuscatedAccountId,
+      obfuscatedProfileId,
+      json,
+    ];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static PlatformPurchase decode(Object result) {
+    result as List<Object?>;
+    return PlatformPurchase(
+      itemId: result[0]! as String,
+      itemName: result[1]! as String,
+      itemPrice: result[2] as double?,
+      itemPriceString: result[3]! as String,
+      currencyCode: result[4]! as String,
+      type: result[5]! as String,
+      paymentId: result[6]! as String,
+      purchaseId: result[7]! as String,
+      orderId: result[8]! as String,
+      purchaseDate: result[9]! as String,
+      minorStatus: result[10]! as String,
+      obfuscatedAccountId: result[11]! as String,
+      obfuscatedProfileId: result[12]! as String,
+      json: result[13]! as String,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! PlatformPurchase || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(itemId, other.itemId) &&
+        _deepEquals(itemName, other.itemName) &&
+        _deepEquals(itemPrice, other.itemPrice) &&
+        _deepEquals(itemPriceString, other.itemPriceString) &&
+        _deepEquals(currencyCode, other.currencyCode) &&
+        _deepEquals(type, other.type) &&
+        _deepEquals(paymentId, other.paymentId) &&
+        _deepEquals(purchaseId, other.purchaseId) &&
+        _deepEquals(orderId, other.orderId) &&
+        _deepEquals(purchaseDate, other.purchaseDate) &&
+        _deepEquals(minorStatus, other.minorStatus) &&
+        _deepEquals(obfuscatedAccountId, other.obfuscatedAccountId) &&
+        _deepEquals(obfuscatedProfileId, other.obfuscatedProfileId) &&
+        _deepEquals(json, other.json);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'PlatformPurchase(itemId: $itemId, itemName: $itemName, itemPrice: $itemPrice, itemPriceString: $itemPriceString, currencyCode: $currencyCode, type: $type, paymentId: $paymentId, purchaseId: $purchaseId, orderId: $orderId, purchaseDate: $purchaseDate, minorStatus: $minorStatus, obfuscatedAccountId: $obfuscatedAccountId, obfuscatedProfileId: $obfuscatedProfileId, json: $json)';
+  }
+}
+
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -549,6 +676,9 @@ class _PigeonCodec extends StandardMessageCodec {
     } else if (value is PlatformOwnedProduct) {
       buffer.putUint8(134);
       writeValue(buffer, value.encode());
+    } else if (value is PlatformPurchase) {
+      buffer.putUint8(135);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -572,6 +702,8 @@ class _PigeonCodec extends StandardMessageCodec {
         return PlatformSubscriptionPriceChange.decode(readValue(buffer)!);
       case 134:
         return PlatformOwnedProduct.decode(readValue(buffer)!);
+      case 135:
+        return PlatformPurchase.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -681,5 +813,31 @@ class SamsungIapHostApi {
     );
     return (pigeonVar_replyValue! as List<Object?>)
         .cast<PlatformOwnedProduct>();
+  }
+
+  /// Completes when the user leaves Samsung's payment sheet. No timeout.
+  Future<PlatformPurchase> startPayment(
+    String itemId,
+    String? obfuscatedAccountId,
+    String? obfuscatedProfileId,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.samsung_iap_flutter_android.SamsungIapHostApi.startPayment$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[itemId, obfuscatedAccountId, obfuscatedProfileId],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as PlatformPurchase;
   }
 }

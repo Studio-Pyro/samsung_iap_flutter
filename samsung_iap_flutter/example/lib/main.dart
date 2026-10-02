@@ -39,6 +39,8 @@ class _HomePageState extends State<HomePage> {
   GalaxyStoreStatus? _status;
   List<SamsungProduct>? _products;
   List<OwnedProduct>? _owned;
+  String? _purchase;
+  bool _buying = false;
   String? _error;
 
   Future<void> _run(Future<void> Function() action) async {
@@ -67,6 +69,26 @@ class _HomePageState extends State<HomePage> {
   Future<void> _getOwnedProducts() => _run(() async {
     final owned = await _iap.getOwnedProducts();
     setState(() => _owned = owned);
+  });
+
+  Future<void> _buy(SamsungProduct product) => _run(() async {
+    setState(() {
+      _purchase = null;
+      _buying = true;
+    });
+    try {
+      final purchase = await _iap.purchase(product.id);
+      setState(
+        () => _purchase =
+            'Bought ${purchase.productId}: purchase ${purchase.purchaseId}, '
+            'order ${purchase.orderId}',
+      );
+    } on SamsungIapException catch (e) {
+      if (e.kind != SamsungIapErrorKind.userCanceled) rethrow;
+      setState(() => _purchase = 'Cancelled');
+    } finally {
+      setState(() => _buying = false);
+    }
   });
 
   @override
@@ -100,6 +122,7 @@ class _HomePageState extends State<HomePage> {
             onPressed: _initialized ? _getOwnedProducts : null,
             child: const Text('Get owned products'),
           ),
+          if (_purchase case final purchase?) Text(purchase),
           if (_error case final error?)
             Text(
               error,
@@ -110,7 +133,10 @@ class _HomePageState extends State<HomePage> {
             ListTile(
               title: Text(product.name),
               subtitle: Text(_describe(product)),
-              trailing: Text(product.formattedPrice),
+              trailing: FilledButton.tonal(
+                onPressed: _buying ? null : () => _buy(product),
+                child: Text('Buy ${product.formattedPrice}'),
+              ),
             ),
           if (owned != null) Text('${owned.length} owned products'),
           for (final product in owned ?? const <OwnedProduct>[])

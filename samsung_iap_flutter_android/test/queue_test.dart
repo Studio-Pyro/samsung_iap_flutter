@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:samsung_iap_flutter_android/samsung_iap_flutter_android.dart';
+import 'package:samsung_iap_flutter_android/src/messages.g.dart';
 import 'package:samsung_iap_flutter_platform_interface/samsung_iap_flutter_platform_interface.dart';
 
 import 'helpers.dart';
@@ -32,6 +33,14 @@ final queuedCalls = <String, QueuedCall>{
         }),
     call: (plugin) => plugin.getOwnedProducts(OwnedProductFilter.all),
   ),
+  'purchase': (
+    stub: (api, sent) =>
+        when(() => api.startPayment(any(), any(), any())).thenAnswer((_) async {
+          sent();
+          return purchaseWire();
+        }),
+    call: (plugin) => plugin.purchase('coins_100'),
+  ),
 };
 
 void main() {
@@ -58,6 +67,48 @@ void main() {
       expect(sends, 1);
     });
   }
+
+  group('a purchase made while owned products load', () {
+    late Completer<List<PlatformOwnedProduct>> owned;
+    final events = <String>[];
+
+    setUp(() async {
+      await initializeForTest(plugin);
+      owned = Completer();
+      events.clear();
+      when(() => api.getOwnedList(any())).thenAnswer((_) {
+        events.add('getOwnedList sent');
+        return owned.future;
+      });
+      when(() => api.startPayment(any(), any(), any())).thenAnswer((_) async {
+        events.add('startPayment sent');
+        return purchaseWire();
+      });
+    });
+
+    test('is sent once the inquiry answers, and succeeds', () async {
+      final loading = plugin.getOwnedProducts(OwnedProductFilter.all);
+      final purchase = plugin.purchase('coins_100');
+      await pumpEventQueue();
+
+      expect(events, ['getOwnedList sent']);
+      owned.complete([]);
+
+      expect(await loading, isEmpty);
+      expect((await purchase).purchaseId, 'a1b2c3');
+      expect(events, ['getOwnedList sent', 'startPayment sent']);
+    });
+
+    test('is sent once a timed-out inquiry settles', () async {
+      final loading = plugin.getOwnedProducts(OwnedProductFilter.all);
+      final purchase = plugin.purchase('coins_100');
+      owned.completeError(PlatformException(code: 'timeout'));
+
+      await expectLater(loading, throwsKind(.network));
+      expect((await purchase).purchaseId, 'a1b2c3');
+      expect(events, ['getOwnedList sent', 'startPayment sent']);
+    });
+  });
 
   test('a failed call does not block the next one', () async {
     when(() => api.getProductsDetails('first'))

@@ -37,6 +37,14 @@ AcknowledgedStatus parseAcknowledgedStatus(String value) => switch (value) {
   _ => AcknowledgedStatus.unknown,
 };
 
+/// Parses the name of the SDK's `MinorStatus` constant.
+MinorStatus parseMinorStatus(String value) => switch (value) {
+  'UNIDENTIFIED' => MinorStatus.unidentified,
+  'NOT_MINOR' => MinorStatus.notMinor,
+  'MINOR' => MinorStatus.minor,
+  _ => MinorStatus.unknown,
+};
+
 /// Parses the name of the SDK's `PriceChangeMode` constant.
 PriceChangeMode parsePriceChangeMode(String value) => switch (value) {
   'PRICE_INCREASE_USER_AGREEMENT_REQUIRED' =>

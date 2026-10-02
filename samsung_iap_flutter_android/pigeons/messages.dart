@@ -135,6 +135,44 @@ class PlatformOwnedProduct {
   String json;
 }
 
+/// The `PurchaseVo` fields the public model uses, with the same rules as
+/// [PlatformProduct].
+class PlatformPurchase {
+  PlatformPurchase({
+    required this.itemId,
+    required this.itemName,
+    required this.itemPrice,
+    required this.itemPriceString,
+    required this.currencyCode,
+    required this.type,
+    required this.paymentId,
+    required this.purchaseId,
+    required this.orderId,
+    required this.purchaseDate,
+    required this.minorStatus,
+    required this.obfuscatedAccountId,
+    required this.obfuscatedProfileId,
+    required this.json,
+  });
+
+  String itemId;
+  String itemName;
+  double? itemPrice;
+  String itemPriceString;
+  String currencyCode;
+  String type;
+  String paymentId;
+  String purchaseId;
+  String orderId;
+  String purchaseDate;
+
+  /// The SDK enum constant's name, or `""`.
+  String minorStatus;
+  String obfuscatedAccountId;
+  String obfuscatedProfileId;
+  String json;
+}
+
 @HostApi()
 abstract class SamsungIapHostApi {
   void initialize(PlatformOperationMode mode, bool showErrorDialog);
@@ -147,4 +185,12 @@ abstract class SamsungIapHostApi {
 
   @async
   List<PlatformOwnedProduct> getOwnedList(PlatformOwnedProductFilter filter);
+
+  /// Completes when the user leaves Samsung's payment sheet. No timeout.
+  @async
+  PlatformPurchase startPayment(
+    String itemId,
+    String? obfuscatedAccountId,
+    String? obfuscatedProfileId,
+  );
 }

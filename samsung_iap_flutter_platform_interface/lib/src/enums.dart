@@ -101,3 +101,18 @@ enum PriceChangeMode {
   /// A mode this version of the plugin does not know.
   unknown,
 }
+
+/// Whether Samsung identifies the buyer as a minor.
+enum MinorStatus {
+  /// Samsung could not tell.
+  unidentified,
+
+  /// The buyer is not a minor.
+  notMinor,
+
+  /// The buyer is a minor.
+  minor,
+
+  /// A status this version of the plugin does not know.
+  unknown,
+}
