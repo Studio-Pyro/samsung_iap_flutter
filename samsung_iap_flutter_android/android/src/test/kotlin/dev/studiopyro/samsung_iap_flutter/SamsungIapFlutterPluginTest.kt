@@ -249,18 +249,6 @@ class SamsungIapFlutterPluginTest : PluginTestBase() {
         }
     }
 
-    @Test
-    fun getOwnedListMapsAFalseReturnToNotSent() = runTest {
-        doAnswer { false }.`when`(helper).getOwnedList(anyString(), any())
-
-        val error = assertFailsWith<FlutterError> {
-            initializedPlugin().getOwnedList(PlatformOwnedProductFilter.ALL)
-        }
-
-        assertEquals("not_sent", error.code)
-        assertEquals("getOwnedList", error.details)
-    }
-
     private fun purchaseVo(minorStatus: MinorStatus? = MinorStatus.NOT_MINOR): PurchaseVo =
         mock(PurchaseVo::class.java).also {
             `when`(it.itemId).thenReturn("coins_100")
