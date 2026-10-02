@@ -21,18 +21,18 @@ on:
       - "samsung_iap_flutter_platform_interface/**"
 
 jobs:
-  spell-check:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1
-    with:
-      includes: |
-        **/*.md
-        .*/**/*.md
-      modified_files_only: false
-
   build:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/flutter_package.yml@v1
     with:
       flutter_version: 3.47.5
+      working_directory: samsung_iap_flutter
+
+  pana:
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/pana.yml@v1
+    with:
+      # Below 160 until the first release. See PUBLISHING.md, "pana minimum
+      # scores".
+      min_score: 40
       working_directory: samsung_iap_flutter
 
   android:

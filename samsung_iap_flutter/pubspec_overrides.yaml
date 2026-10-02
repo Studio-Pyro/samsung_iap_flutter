@@ -1,0 +1,5 @@
+dependency_overrides:
+  samsung_iap_flutter_android:
+    path: ../samsung_iap_flutter_android
+  samsung_iap_flutter_platform_interface:
+    path: ../samsung_iap_flutter_platform_interface

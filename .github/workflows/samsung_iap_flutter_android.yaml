@@ -26,6 +26,14 @@ jobs:
       working_directory: samsung_iap_flutter_android
       coverage_excludes: "**/*.g.dart"
 
+  pana:
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/pana.yml@v1
+    with:
+      # Below 160 until the first release. See PUBLISHING.md, "pana minimum
+      # scores".
+      min_score: 40
+      working_directory: samsung_iap_flutter_android
+
   kotlin:
     runs-on: ubuntu-latest
 

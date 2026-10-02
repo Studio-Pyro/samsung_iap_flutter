@@ -10,13 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   material_ui: ^1.1.1
-  samsung_iap_flutter:
-    # When depending on this package from a real application you should use:
-    #   samsung_iap_flutter: ^x.y.z
-    # See https://dart.dev/tools/pub/dependencies#version-constraints
-    # The example app is bundled with the plugin so we use a path dependency on
-    # the parent directory to use the current plugin's version.
-    path: ../
+  samsung_iap_flutter: ^0.1.0
 
 dev_dependencies:
   flutter_driver:

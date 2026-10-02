@@ -22,3 +22,11 @@ jobs:
     with:
       flutter_version: 3.47.5
       working_directory: samsung_iap_flutter_platform_interface
+
+  pana:
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/pana.yml@v1
+    with:
+      # Below 160 until main has the pubspec repository URL. See
+      # PUBLISHING.md, "pana minimum scores".
+      min_score: 150
+      working_directory: samsung_iap_flutter_platform_interface

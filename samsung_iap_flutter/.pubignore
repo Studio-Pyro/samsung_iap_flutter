@@ -1,0 +1,2 @@
+# pub leaves only the package root pubspec_overrides.yaml out by itself.
+example/pubspec_overrides.yaml
