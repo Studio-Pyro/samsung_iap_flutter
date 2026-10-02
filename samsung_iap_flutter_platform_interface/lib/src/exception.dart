@@ -17,8 +17,11 @@ enum SamsungIapErrorKind {
   /// The product or IAP itself is not sold in the user's country.
   notAvailableInCountry,
 
-  /// A network problem, or no answer from Samsung within 30 seconds. Safe to
-  /// retry.
+  /// A network problem, or no answer from Samsung within 30 seconds.
+  ///
+  /// An inquiry is safe to retry. A purchase may have gone through, so
+  /// reconcile owned products first and retry only if the product is not
+  /// owned.
   network,
 
   /// Galaxy Store is missing, disabled or not genuine.

@@ -3,8 +3,8 @@ import 'package:samsung_iap_flutter_platform_interface/src/enums.dart';
 
 /// A completed payment, as returned by `purchase`.
 ///
-/// Grant access, verify [purchaseId] on your server, then consume or
-/// acknowledge it.
+/// Verify [purchaseId] on your server if you have one, then grant access and
+/// consume or acknowledge it.
 @immutable
 class SamsungPurchase {
   /// Creates a purchase.

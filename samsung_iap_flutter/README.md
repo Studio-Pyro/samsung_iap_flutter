@@ -26,16 +26,29 @@ try {
     'coins_100',
     obfuscatedAccountId: hashedUserId,
   );
-  // Grant access, then verify purchase.purchaseId on your server.
+  // Verify purchase.purchaseId on your server, then grant access.
 } on SamsungIapException catch (e) {
   switch (e.kind) {
     case SamsungIapErrorKind.userCanceled:
       return; // The user closed the sheet. Show nothing.
     case SamsungIapErrorKind.alreadyOwned ||
-        SamsungIapErrorKind.purchaseResultUnknown:
+        SamsungIapErrorKind.purchaseResultUnknown ||
+        SamsungIapErrorKind.network:
+      // The user may own the product now. Check before anything else.
       await reconcile(await iap.getOwnedProducts());
-    default:
-      showError(e);
+    case SamsungIapErrorKind.busy:
+      showRetry(); // Samsung refused before it showed any UI.
+    case SamsungIapErrorKind.productNotFound ||
+        SamsungIapErrorKind.notAvailableInCountry ||
+        SamsungIapErrorKind.storeUnavailable ||
+        SamsungIapErrorKind.storeUpdateRequired ||
+        SamsungIapErrorKind.accountNotSignedIn ||
+        SamsungIapErrorKind.invalidArgument ||
+        SamsungIapErrorKind.notInitialized ||
+        SamsungIapErrorKind.initializationFailed ||
+        SamsungIapErrorKind.general ||
+        SamsungIapErrorKind.unknown:
+      if (!e.dialogShown) showError(e);
   }
 }
 ```
@@ -46,12 +59,15 @@ Follow these rules:
   error or log it as a failure.
 - **Reconcile, do not guess.** On `alreadyOwned`, the user already has the product. On
   `purchaseResultUnknown`, Samsung could not confirm the result, and the payment may have gone
-  through. In both cases, call `getOwnedProducts` and grant what it returns before you tell the
-  user anything.
+  through. On `network`, the connection failed, possibly after Samsung charged the user. In all
+  three cases, call `getOwnedProducts` and grant what it returns before you tell the user
+  anything. After a `network` error, offer a retry only if the product is not owned.
 - **Reconcile at every launch.** If the app process dies while the payment sheet is open, the
   result is lost. Call `getOwnedProducts` at every launch and grant anything you have not granted
-  yet. You can call `purchase` while that call is still running: the plugin runs one Samsung call
+  yet. You can call `purchase` while that call is still running. The plugin runs one Samsung call
   at a time, and the purchase starts when the inquiry finishes.
+- **Verify, then grant.** If you have a server, verify `purchaseId` with Samsung's receipt API
+  before you grant access.
 - **Retry `busy`.** Samsung returns `busy` when it is still finishing a call, for example an
   inquiry that timed out after 30 seconds. It refuses before it shows any UI, so a retry cannot
   charge the user twice.

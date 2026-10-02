@@ -81,9 +81,11 @@ class SamsungIap {
   ///
   /// - [SamsungIapErrorKind.userCanceled]: the user closed the sheet. Not an
   ///   error, so show nothing.
-  /// - [SamsungIapErrorKind.alreadyOwned] and
-  ///   [SamsungIapErrorKind.purchaseResultUnknown]: call [getOwnedProducts]
-  ///   and grant what it returns before telling the user anything.
+  /// - [SamsungIapErrorKind.alreadyOwned],
+  ///   [SamsungIapErrorKind.purchaseResultUnknown] and
+  ///   [SamsungIapErrorKind.network]: the user may own the product. Call
+  ///   [getOwnedProducts] and grant what it returns before telling the user
+  ///   anything. After `network`, retry only if the product is not owned.
   /// - [SamsungIapErrorKind.busy]: Samsung refused to start, so nothing was
   ///   charged. Retry after a short wait.
   /// - [SamsungIapErrorKind.invalidArgument]: an empty product ID, or an
