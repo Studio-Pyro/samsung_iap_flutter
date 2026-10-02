@@ -1,0 +1,26 @@
+name: spell_check
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Every pull request, so the PR title is checked too, and every push to main
+# that changes what cspell reads.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    paths:
+      - "**.md"
+      - ".github/cspell.json"
+      - ".github/workflows/spell_check.yaml"
+
+jobs:
+  spell-check:
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1
+    with:
+      includes: |
+        **/*.md
+        .*/**/*.md
+      modified_files_only: false
