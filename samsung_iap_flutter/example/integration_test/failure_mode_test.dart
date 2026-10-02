@@ -40,13 +40,30 @@ void main() {
   };
 
   for (final MapEntry(key: name, value: (call, documented)) in calls.entries) {
-    test('$name fails with general and a detail code', () async {
+    test('$name fails with a detail code', () async {
       try {
         final result = await call();
         fail('$name succeeded in TEST_FAILURE mode: $result');
       } on SamsungIapException catch (e) {
         debugPrint('TEST_FAILURE $name: $e');
-        expect(e.kind, SamsungIapErrorKind.general, reason: '$e');
+        expect(
+          e.detailCode,
+          isNot(9201),
+          reason:
+              'setup failure, not a TEST_FAILURE result: Samsung reports 9201 '
+              'until the app has IAP activated and products registered in '
+              'Seller Portal. $e',
+        );
+        // A bogus product ID can fail as productNotFound before Samsung
+        // applies TEST_FAILURE.
+        expect(
+          e.kind,
+          anyOf(
+            SamsungIapErrorKind.general,
+            SamsungIapErrorKind.productNotFound,
+          ),
+          reason: '$e',
+        );
         expect(e.detailCode, documented ?? isNotNull, reason: '$e');
         expect(e.dialogShown, isFalse, reason: '$e');
       }
