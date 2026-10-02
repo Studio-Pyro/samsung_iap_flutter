@@ -67,6 +67,14 @@ AckStatus parseAckStatus(int code) => switch (code) {
   _ => AckStatus.unknown,
 };
 
+/// Parses the `pricing` of a `PromotionEligibilityVo`.
+PromotionPricing parsePromotionPricing(String value) => switch (value) {
+  'FreeTrial' => PromotionPricing.freeTrial,
+  'TieredPrice' => PromotionPricing.tieredPrice,
+  'RegularPrice' => PromotionPricing.regularPrice,
+  _ => PromotionPricing.unknown,
+};
+
 /// Parses the SDK's `item`/`subscription` product type.
 SamsungProductType parseProductType(String value) => switch (value) {
   'item' => SamsungProductType.item,

@@ -171,3 +171,19 @@ enum ProrationMode {
   /// the renewal.
   deferred,
 }
+
+/// The offer Samsung would give the user on subscribing now.
+enum PromotionPricing {
+  /// The free trial, `SamsungProduct.freeTrialDays` long.
+  freeTrial,
+
+  /// The introductory price, `SamsungProduct.introductoryOffer`.
+  tieredPrice,
+
+  /// The regular price, with no offer.
+  regularPrice,
+
+  /// A pricing this version of the plugin does not know. See
+  /// `PromotionEligibility.rawJson`.
+  unknown,
+}

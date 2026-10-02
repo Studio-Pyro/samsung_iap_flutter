@@ -159,6 +159,10 @@ void main() {
         ),
         throwsUnimplementedError,
       );
+      expect(
+        () => platform.getPromotionEligibility(['monthly']),
+        throwsUnimplementedError,
+      );
     });
 
     test('accepts an instance that extends the base class', () {
@@ -437,6 +441,33 @@ void main() {
           reason: status.name,
         );
       }
+    });
+
+    test('eligibilities differing in any one field are not equal', () {
+      PromotionEligibility eligibility({
+        String productId = 'monthly',
+        PromotionPricing pricing = PromotionPricing.freeTrial,
+        String rawJson = '{"itemID":"monthly"}',
+      }) => PromotionEligibility(
+        productId: productId,
+        pricing: pricing,
+        rawJson: rawJson,
+      );
+
+      expect(eligibility(), eligibility());
+      expect(eligibility().hashCode, eligibility().hashCode);
+      final variants = [
+        eligibility(productId: 'yearly'),
+        eligibility(pricing: PromotionPricing.regularPrice),
+        eligibility(rawJson: '{}'),
+      ];
+      for (final (index, variant) in variants.indexed) {
+        expect(variant, isNot(eligibility()), reason: 'variant $index');
+      }
+      expect(
+        eligibility(pricing: PromotionPricing.tieredPrice).toString(),
+        'PromotionEligibility(monthly, tieredPrice)',
+      );
     });
 
     test('owned products and price changes describe themselves', () {

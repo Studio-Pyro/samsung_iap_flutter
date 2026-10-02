@@ -6,6 +6,7 @@ import com.samsung.android.sdk.iap.lib.listener.OnChangeSubscriptionPlanListener
 import com.samsung.android.sdk.iap.lib.listener.OnConsumePurchasedItemsListener
 import com.samsung.android.sdk.iap.lib.listener.OnGetOwnedListListener
 import com.samsung.android.sdk.iap.lib.listener.OnGetProductsDetailsListener
+import com.samsung.android.sdk.iap.lib.listener.OnGetPromotionEligibilityListener
 import com.samsung.android.sdk.iap.lib.listener.OnPaymentListener
 import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyString
@@ -21,22 +22,31 @@ class GuardedCall(
     val sdk: (IapHelper) -> Unit,
 )
 
-val inquiryCalls = listOf(
-    GuardedCall(
-        "getProductsDetails",
-        OnGetProductsDetailsListener::class.java,
-        sent = null,
-        call = { it.getProductsDetails("") },
-        sdk = { it.getProductsDetails(anyString(), any()) },
-    ),
-    GuardedCall(
-        "getOwnedList",
-        OnGetOwnedListListener::class.java,
-        sent = true,
-        call = { it.getOwnedList(PlatformOwnedProductFilter.ALL) },
-        sdk = { it.getOwnedList(anyString(), any()) },
-    ),
+val productsCall = GuardedCall(
+    "getProductsDetails",
+    OnGetProductsDetailsListener::class.java,
+    sent = null,
+    call = { it.getProductsDetails("") },
+    sdk = { it.getProductsDetails(anyString(), any()) },
 )
+
+val ownedCall = GuardedCall(
+    "getOwnedList",
+    OnGetOwnedListListener::class.java,
+    sent = true,
+    call = { it.getOwnedList(PlatformOwnedProductFilter.ALL) },
+    sdk = { it.getOwnedList(anyString(), any()) },
+)
+
+val promotionCall = GuardedCall(
+    "getPromotionEligibility",
+    OnGetPromotionEligibilityListener::class.java,
+    sent = true,
+    call = { it.getPromotionEligibility("monthly") },
+    sdk = { it.getPromotionEligibility(anyString(), any()) },
+)
+
+val inquiryCalls = listOf(productsCall, ownedCall, promotionCall)
 
 val consumeCall = GuardedCall(
     "consumePurchasedItems",

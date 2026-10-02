@@ -26,6 +26,10 @@ const planFromIdDefine = String.fromEnvironment('SAMSUNG_IAP_PLAN_FROM_ID');
 /// downgrade from.
 const planToIdDefine = String.fromEnvironment('SAMSUNG_IAP_PLAN_TO_ID');
 
+/// A subscription with a free trial that the license tester has never
+/// subscribed to.
+const trialIdDefine = String.fromEnvironment('SAMSUNG_IAP_TRIAL_ID');
+
 const _bogusPurchaseId = 'samsung-iap-flutter-bogus';
 
 // Runs on a Samsung device with Galaxy Store, signed in as a license tester.
@@ -97,6 +101,23 @@ void main() {
     final items = await iap.getOwnedProducts(filter: OwnedProductFilter.item);
     expect(items.map((p) => p.type), everyElement(SamsungProductType.item));
   });
+
+  test(
+    'getPromotionEligibility offers a fresh tester the free trial',
+    () async {
+      final eligibility = await iap.getPromotionEligibility([trialIdDefine]);
+
+      expect(eligibility, [
+        isA<PromotionEligibility>()
+            .having((e) => e.productId, 'productId', trialIdDefine)
+            .having((e) => e.pricing, 'pricing', PromotionPricing.freeTrial)
+            .having((e) => e.rawJson, 'rawJson', contains(trialIdDefine)),
+      ]);
+    },
+    skip: trialIdDefine.isEmpty
+        ? 'Set SAMSUNG_IAP_TRIAL_ID to check the free trial of a subscription.'
+        : false,
+  );
 
   test(
     'purchase buys the product while owned products load',

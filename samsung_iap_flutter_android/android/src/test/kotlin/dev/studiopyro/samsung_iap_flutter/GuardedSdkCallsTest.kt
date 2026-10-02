@@ -151,16 +151,17 @@ class GuardedSdkCallsTest : PluginTestBase() {
     }
 
     @TestFactory
-    fun sentCallsMapAFalseReturnToNotSent() = (ackCalls + paymentCalls).map { guarded ->
-        DynamicTest.dynamicTest(guarded.name) {
-            reset(helper)
-            runTest {
-                doAnswer { false }.`when`(helper).let(guarded.sdk)
+    fun sentCallsMapAFalseReturnToNotSent() =
+        (inquiryCalls + ackCalls + paymentCalls).filter { it.sent == true }.map { guarded ->
+            DynamicTest.dynamicTest(guarded.name) {
+                reset(helper)
+                runTest {
+                    doAnswer { false }.`when`(helper).let(guarded.sdk)
 
-                val error = assertFailsWith<FlutterError> { guarded.call(initializedPlugin()) }
+                    val error = assertFailsWith<FlutterError> { guarded.call(initializedPlugin()) }
 
-                assertEquals("not_sent" to guarded.name, error.code to error.details)
+                    assertEquals("not_sent" to guarded.name, error.code to error.details)
+                }
             }
         }
-    }
 }

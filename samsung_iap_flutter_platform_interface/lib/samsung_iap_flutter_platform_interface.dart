@@ -3,6 +3,7 @@ import 'package:samsung_iap_flutter_platform_interface/src/ack_result.dart';
 import 'package:samsung_iap_flutter_platform_interface/src/enums.dart';
 import 'package:samsung_iap_flutter_platform_interface/src/owned_product.dart';
 import 'package:samsung_iap_flutter_platform_interface/src/product.dart';
+import 'package:samsung_iap_flutter_platform_interface/src/promotion_eligibility.dart';
 import 'package:samsung_iap_flutter_platform_interface/src/purchase.dart';
 
 export 'src/ack_result.dart';
@@ -10,6 +11,7 @@ export 'src/enums.dart';
 export 'src/exception.dart';
 export 'src/owned_product.dart';
 export 'src/product.dart';
+export 'src/promotion_eligibility.dart';
 export 'src/purchase.dart';
 
 /// {@template samsung_iap_flutter_platform}
@@ -115,6 +117,18 @@ abstract class SamsungIapFlutterPlatform extends PlatformInterface {
   }) {
     throw UnimplementedError(
       'changeSubscriptionPlan() has not been implemented.',
+    );
+  }
+
+  /// Fetches the offer each subscription in [subscriptionIds] would give the
+  /// user on subscribing now.
+  ///
+  /// The caller has already validated the IDs.
+  Future<List<PromotionEligibility>> getPromotionEligibility(
+    List<String> subscriptionIds,
+  ) {
+    throw UnimplementedError(
+      'getPromotionEligibility() has not been implemented.',
     );
   }
 }

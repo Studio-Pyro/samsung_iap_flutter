@@ -38,6 +38,7 @@ class _HomePageState extends State<HomePage> {
   bool _initialized = false;
   GalaxyStoreStatus? _status;
   List<SamsungProduct>? _products;
+  Map<String, PromotionPricing> _pricing = const {};
   List<OwnedProduct>? _owned;
   String? _purchase;
   bool _buying = false;
@@ -68,7 +69,19 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _getProducts() => _run(() async {
     final products = await _iap.getProducts(productIds);
-    setState(() => _products = products);
+    setState(() {
+      _products = products;
+      _pricing = const {};
+    });
+    final subscriptionIds = [
+      for (final product in products)
+        if (product.type == SamsungProductType.subscription) product.id,
+    ];
+    if (subscriptionIds.isEmpty) return;
+    final eligibility = await _iap.getPromotionEligibility(subscriptionIds);
+    setState(
+      () => _pricing = {for (final e in eligibility) e.productId: e.pricing},
+    );
   });
 
   Future<void> _getOwnedProducts() => _run(() async {
@@ -174,7 +187,18 @@ class _HomePageState extends State<HomePage> {
           if (products != null) Text('${products.length} products'),
           for (final product in products ?? const <SamsungProduct>[])
             ListTile(
-              title: Text(product.name),
+              title: Wrap(
+                spacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(product.name),
+                  if (_offer(_pricing[product.id]) case final offer?)
+                    Chip(
+                      label: Text(offer),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                ],
+              ),
               subtitle: Text(_describe(product)),
               trailing: FilledButton.tonal(
                 onPressed: _buying ? null : () => _buy(product),
@@ -248,6 +272,12 @@ class _HomePageState extends State<HomePage> {
       ],
     );
   }
+
+  static String? _offer(PromotionPricing? pricing) => switch (pricing) {
+    PromotionPricing.freeTrial => 'Free trial available',
+    PromotionPricing.tieredPrice => 'Intro price',
+    PromotionPricing.regularPrice || PromotionPricing.unknown || null => null,
+  };
 
   static String _describe(SamsungProduct product) => [
     product.id,

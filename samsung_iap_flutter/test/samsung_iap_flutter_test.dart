@@ -517,4 +517,59 @@ void main() {
       ).called(1);
     });
   });
+
+  group('getPromotionEligibility', () {
+    const eligibility = [
+      PromotionEligibility(
+        productId: 'monthly',
+        pricing: PromotionPricing.freeTrial,
+        rawJson: '{"itemID":"monthly"}',
+      ),
+      PromotionEligibility(
+        productId: 'yearly',
+        pricing: PromotionPricing.regularPrice,
+        rawJson: '{"itemID":"yearly"}',
+      ),
+    ];
+
+    setUp(() {
+      when(() => platform.getPromotionEligibility(any()))
+          .thenAnswer((_) async => eligibility);
+    });
+
+    test('returns the eligibility the platform reports', () async {
+      expect(
+        await iap.getPromotionEligibility(['monthly', 'yearly']),
+        eligibility,
+      );
+
+      verify(() => platform.getPromotionEligibility(['monthly', 'yearly']))
+          .called(1);
+    });
+
+    test('rejects invalid subscription IDs before the platform', () async {
+      final rejected = {
+        <String>[]: 'The list of subscription IDs is empty.',
+        ['monthly', '']: 'Invalid subscription ID: "".',
+        ['  ']: 'Invalid subscription ID: "  ".',
+        ['monthly,yearly']: 'Invalid subscription ID: "monthly,yearly".',
+      };
+      for (final MapEntry(key: ids, value: message) in rejected.entries) {
+        await expectLater(
+          iap.getPromotionEligibility(ids),
+          throwsA(
+            isA<SamsungIapException>()
+                .having(
+                  (e) => e.kind,
+                  'kind',
+                  SamsungIapErrorKind.invalidArgument,
+                )
+                .having((e) => e.message, 'message', message),
+          ),
+          reason: '$ids',
+        );
+      }
+      verifyNever(() => platform.getPromotionEligibility(any()));
+    });
+  });
 }

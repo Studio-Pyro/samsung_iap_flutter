@@ -16,6 +16,7 @@ import com.samsung.android.sdk.iap.lib.vo.ConsumeVo
 import com.samsung.android.sdk.iap.lib.vo.ErrorVo
 import com.samsung.android.sdk.iap.lib.vo.OwnedProductVo
 import com.samsung.android.sdk.iap.lib.vo.ProductVo
+import com.samsung.android.sdk.iap.lib.vo.PromotionEligibilityVo
 import com.samsung.android.sdk.iap.lib.vo.PurchaseVo
 import com.samsung.android.sdk.iap.lib.vo.SubscriptionPriceChangeVo
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -248,18 +249,6 @@ class SamsungIapFlutterPluginTest : PluginTestBase() {
         }
     }
 
-    @Test
-    fun getOwnedListMapsAFalseReturnToNotSent() = runTest {
-        doAnswer { false }.`when`(helper).getOwnedList(anyString(), any())
-
-        val error = assertFailsWith<FlutterError> {
-            initializedPlugin().getOwnedList(PlatformOwnedProductFilter.ALL)
-        }
-
-        assertEquals("not_sent", error.code)
-        assertEquals("getOwnedList", error.details)
-    }
-
     private fun purchaseVo(minorStatus: MinorStatus? = MinorStatus.NOT_MINOR): PurchaseVo =
         mock(PurchaseVo::class.java).also {
             `when`(it.itemId).thenReturn("coins_100")
@@ -447,6 +436,31 @@ class SamsungIapFlutterPluginTest : PluginTestBase() {
                 }
             }
         }
+    }
+
+    private fun promotionVo(itemId: String?, pricing: String?, json: String?): PromotionEligibilityVo =
+        mock(PromotionEligibilityVo::class.java).also {
+            `when`(it.itemId).thenReturn(itemId)
+            `when`(it.pricing).thenReturn(pricing)
+            `when`(it.jsonString).thenReturn(json)
+        }
+
+    @Test
+    fun getPromotionEligibilitySendsTheIdsAndReturnsEachResult() = runTest {
+        val results = arrayListOf(
+            promotionVo("monthly", "FreeTrial", """{"itemID":"monthly"}"""),
+            promotionVo(null, null, null),
+        )
+        answer(promotionCall) { promotionCall.callBack(it, errorVo(0), results) }
+
+        assertEquals(
+            listOf(
+                PlatformPromotionEligibility(itemId = "monthly", pricing = "FreeTrial", json = """{"itemID":"monthly"}"""),
+                PlatformPromotionEligibility(itemId = "", pricing = "", json = ""),
+            ),
+            initializedPlugin().getPromotionEligibility("monthly,yearly"),
+        )
+        verify(helper).getPromotionEligibility(eq("monthly,yearly"), any())
     }
 
     @Test

@@ -713,6 +713,62 @@ class PlatformAckResult {
   }
 }
 
+/// `PromotionEligibilityVo` field for field.
+class PlatformPromotionEligibility {
+  PlatformPromotionEligibility({
+    required this.itemId,
+    required this.pricing,
+    required this.json,
+  });
+
+  String itemId;
+
+  String pricing;
+
+  String json;
+
+  List<Object?> _toList() {
+    return <Object?>[itemId, pricing, json];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static PlatformPromotionEligibility decode(Object result) {
+    result as List<Object?>;
+    return PlatformPromotionEligibility(
+      itemId: result[0]! as String,
+      pricing: result[1]! as String,
+      json: result[2]! as String,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! PlatformPromotionEligibility ||
+        other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(itemId, other.itemId) &&
+        _deepEquals(pricing, other.pricing) &&
+        _deepEquals(json, other.json);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'PlatformPromotionEligibility(itemId: $itemId, pricing: $pricing, json: $json)';
+  }
+}
+
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -747,6 +803,9 @@ class _PigeonCodec extends StandardMessageCodec {
     } else if (value is PlatformAckResult) {
       buffer.putUint8(137);
       writeValue(buffer, value.encode());
+    } else if (value is PlatformPromotionEligibility) {
+      buffer.putUint8(138);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -777,6 +836,8 @@ class _PigeonCodec extends StandardMessageCodec {
         return PlatformPurchase.decode(readValue(buffer)!);
       case 137:
         return PlatformAckResult.decode(readValue(buffer)!);
+      case 138:
+        return PlatformPromotionEligibility.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -995,5 +1056,30 @@ class SamsungIapHostApi {
       isNullValid: false,
     );
     return pigeonVar_replyValue! as PlatformPurchase;
+  }
+
+  /// [itemIds] is comma-separated and not empty.
+  Future<List<PlatformPromotionEligibility>> getPromotionEligibility(
+    String itemIds,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.samsung_iap_flutter_android.SamsungIapHostApi.getPromotionEligibility$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[itemIds],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return (pigeonVar_replyValue! as List<Object?>)
+        .cast<PlatformPromotionEligibility>();
   }
 }
