@@ -272,6 +272,15 @@ Numeric values come from [AAR] `HelperDefine` constants; meanings from [H §Resp
 | `IAP_ERROR_NEED_SA_LOGIN` | **-1014** | in the AAR only; not documented [AAR] |
 | `IAP_ERROR_INVALID_ACCESS_TOKEN` | **-1015** | documented ("Access token for Samsung account is not valid") but **absent from the 6.5.2 AAR constants** [H] vs [AAR] |
 
+**Two shapes of a server error (added 2026-10-02).** The SDK never translates Galaxy Store's codes. It copies the `STATUS_CODE` int from Galaxy Store's result `Bundle` into `ErrorVo` unchanged, and the two SDK paths read different keys [AAR]:
+
+- **Service path** (`getOwnedList`, `getProductsDetails`, `consumePurchasedItems`, `acknowledgePurchases`, `getPromotionEligibility`). Every task calls `BaseTask.setErrorVoFromBundle`, which calls the two-argument `ErrorVo.setError(STATUS_CODE, ERROR_STRING)`. It reads no `ERROR_DETAILS`, so `getErrorDetailsString()` keeps the constructor default `""`. `BaseService.onEndProcess` logs the code.
+- **Payment path** (`PaymentActivity`, `ChangeSubscriptionPlanActivity`). `BaseActivity.finishPurchase` and `cancelPurchase` call the three-argument `setError(STATUS_CODE, ERROR_STRING, ERROR_DETAILS)`.
+
+The SDK sets only three codes itself: 1 (`cancelPurchase` default, and an invalid Galaxy Store in `checkAppsPackage`), -1000 (service bind failure in `ServiceBinder` and the services) and -1002 (null `Bundle` or an exception in a task or activity) [AAR]. Every other code, negative or positive, is Galaxy Store's.
+
+On a Galaxy S22 (SM-S901B, Android 16, Galaxy Store 4.6.11.4) in TEST and TEST_FAILURE modes, Galaxy Store returned the raw positive server code on the service path. The app saw `errorCode` 9201, 9005 and 9000 with empty details. Galaxy Store's own process logged the detail strings, for example `IS9201/9001/RLgulQFMNH`, `IS9005/6050/xNzpvRlhKZ` and `IS9000/9004/hqaYhProtq`, and the SDK logged `BaseService onEndProcess: 9201`. The payment path returned the documented shape. `changeSubscriptionPlan` gave -1005 with detail 9207. In TEST_FAILURE mode, `getProductsDetails` and `getOwnedList` returned 9201, because the app had no IAP products set up in Seller Portal. Galaxy Store logged `OperationMode: Mode: -1`, which is `OPERATION_MODE_TEST_FAILURE`'s value [AAR], and then `getErrorCodeByMode = [9201, TEST, 6.5.2.002]`. So it got TEST_FAILURE and checked the setup first (**Inference** from one device). [H] does not mention the raw-code shape.
+
 ---
 
 ## 3. Integration requirements
@@ -667,14 +676,14 @@ final class SamsungIapException implements Exception {
 
 **Why an enum, not a sealed class hierarchy:** both give exhaustive `switch` checking. The enum is one class instead of about 14, and every kind carries the same fields. **Decided** (§10.4 #2).
 
-**Mapping**, done in `samsung_iap_flutter_android` from `PlatformException`:
+**Mapping**, done in `samsung_iap_flutter_android` from `PlatformException`. `errors.dart` normalizes the two shapes of §2.8 first. A code above 1 is a server code, so it becomes `detailCode` and `code` stays as sent. For a server code or -1002, a detail code from the table below picks the kind (9201, 9202, 9207 → `productNotFound`; 9224 → `alreadyOwned`; 9134, 9259 → `notAvailableInCountry`), and any other detail code stays `general`. A specific -10xx code keeps its own kind. The mapper is the Dart boundary rather than Kotlin, because the Kotlin bridge passes `ErrorVo` through unchanged and the kind table already lives in Dart.
 
 | Source | Kind | App guidance |
 |---|---|---|
 | code 1 `IAP_PAYMENT_IS_CANCELED` | `userCanceled` | Not an error in UI terms; don't log as failure |
-| -1003 (9224) | `alreadyOwned` | Call `getOwnedProducts` and grant or ack |
-| -1005 (9202/9207), -1007 (9201) | `productNotFound` | Config problem: product ID, mode, activation, distribution country [H] |
-| -1012 (9134), -1013 (9259) | `notAvailableInCountry` | Hide the store UI |
+| -1003 (9224), raw 9224 | `alreadyOwned` | Call `getOwnedProducts` and grant or ack |
+| -1005 (9202/9207), -1007 (9201), raw 9201/9202/9207 | `productNotFound` | Config problem: product ID, mode, activation, distribution country [H] |
+| -1012 (9134), -1013 (9259), raw 9134/9259 | `notAvailableInCountry` | Hide the store UI |
 | -1008, -1009, -1010, -1011, `timeout` | `network` | Retry inquiries, consume and ack. After `purchase` or a plan change, reconcile with `getOwnedProducts` first, because the user may have paid |
 | -1000 | `initializationFailed` | Retryable (10011 says "Try again") [H] |
 | -1001, `store_update_required` | `storeUpdateRequired` | Deep-link to Galaxy Store |
@@ -684,8 +693,8 @@ final class SamsungIapException implements Exception {
 | `not_sent` | `busy` | The SDK refused to start the call, before any UI, for example while it finishes one that timed out. Retry |
 | `not_initialized` | `notInitialized` | Programmer error. Call `initialize` first |
 | Dart validation | `invalidArgument` | Programmer error |
-| -1002 `IAP_ERROR_COMMON` | `general` | Switch on `detailCode`: 100010 not a license tester, 7002 suspicious transaction, 1005/1006/1012/1014 plan-change problems, 9226 invalid consume purchase ID, 9000/9005/9013/9014 TEST_FAILURE mode |
-| -1004 and anything else | `unknown` | Keep `code` for logs |
+| -1002 `IAP_ERROR_COMMON`, any other raw server code | `general` | Switch on `detailCode`: 100010 not a license tester, 7002 suspicious transaction, 1005/1006/1012/1014 plan-change problems, 9226 invalid consume purchase ID, 9000/9005/9013/9014 TEST_FAILURE mode |
+| -1004 and any other negative code | `unknown` | Keep `code` for logs |
 
 **Partial failure in consume/ack:** the call-level `ErrorVo` != 0 → throw. Otherwise return a per-item `PurchaseAckResult` list; items can fail individually (status 1–9) even though the call succeeded [H §Notify]. `alreadyProcessed` (4) should count as success for idempotent retry loops (**Inference**).
 

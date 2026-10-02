@@ -168,9 +168,13 @@ flutter test integration_test/device_test.dart \
 ```
 
 The failure-mode tests run all seven Samsung calls in TEST_FAILURE mode, where Samsung fails every
-request on purpose. They need no product IDs and buy nothing. Each test expects `general` and prints
-the detail code. The tests turn off Samsung's error dialogs and check that no error reports one. If
-`purchase` or `changeSubscriptionPlan` opens Samsung UI, close it.
+request on purpose. They need no product IDs and buy nothing. Each test expects `general`, or
+`productNotFound` when Samsung rejects the bogus product ID first, with a detail code, and prints
+the error. A 9201 detail code fails the test as a setup failure. Samsung reports 9201 before it
+applies TEST_FAILURE, until the app has IAP activated and products registered in Seller Portal. The
+tests turn off Samsung's error dialogs and check that no error reports one. If `purchase` or
+`changeSubscriptionPlan` opens Samsung UI, close it. `purchase` shows Samsung's test-mode notice,
+and the calls after it time out until you tap **Cancel**.
 
 ```sh
 flutter test integration_test/failure_mode_test.dart
@@ -181,15 +185,21 @@ run has confirmed them yet. For the other three calls, the tests check only that
 present, because a code Samsung does not document is not a contract. Record each code you observe in
 this table.
 
+The observed column is from a Galaxy S22 (SM-S901B) with Android 16 and Galaxy Store 4.6.11.4, on
+2026-10-02. Its app had no IAP products set up in Seller Portal yet, so the 9201 rows are blocked by
+that setup and do not show the TEST_FAILURE code. The service calls on the same device also returned
+the raw codes 9005 and 9000 in TEST_FAILURE mode, but that run did not record which call returned
+which code.
+
 | Call | Expected `detailCode` | Observed |
 |---|---|---|
-| `getProducts` | 9013 (documented, unverified) | Not run yet |
-| `getOwnedProducts` | 9000 (documented, unverified) | Not run yet |
-| `purchase` | 9014 (documented, unverified) | Not run yet |
-| `consume` | 9005 (documented, unverified) | Not run yet |
-| `acknowledge` | Not documented | Not run yet |
-| `changeSubscriptionPlan` | Not documented | Not run yet |
-| `getPromotionEligibility` | Not documented | Not run yet |
+| `getProducts` | 9013 (documented, unverified) | `productNotFound`, code 9201, `detailCode` 9201. Blocked by Seller Portal setup. |
+| `getOwnedProducts` | 9000 (documented, unverified) | `productNotFound`, code 9201, `detailCode` 9201. Blocked by Seller Portal setup. |
+| `purchase` | 9014 (documented, unverified) | Samsung showed its test-mode notice and waited. No error yet. |
+| `consume` | 9005 (documented, unverified) | Not recorded per call |
+| `acknowledge` | Not documented | Not recorded per call |
+| `changeSubscriptionPlan` | Not documented | `productNotFound`, code -1005, `detailCode` 9207 |
+| `getPromotionEligibility` | Not documented | Not recorded per call |
 
 Some checks cannot be automated. Do them by hand in the example app, which starts in TEST mode:
 
