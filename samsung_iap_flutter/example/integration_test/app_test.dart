@@ -130,7 +130,10 @@ void main() {
 
       await tester.tap(find.text('Get products'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('storeUnavailable'), findsOneWidget);
+      expect(
+        find.textContaining('storeUnavailable (code null, detail null): '),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('Get owned products'));
       await tester.pumpAndSettle();
