@@ -99,7 +99,7 @@ void main() {
       expect(events, ['getOwnedList sent', 'startPayment sent']);
     });
 
-    test('is still sent after the inquiry times out', () async {
+    test('is sent once a timed-out inquiry settles', () async {
       final loading = plugin.getOwnedProducts(OwnedProductFilter.all);
       final purchase = plugin.purchase('coins_100');
       owned.completeError(PlatformException(code: 'timeout'));
