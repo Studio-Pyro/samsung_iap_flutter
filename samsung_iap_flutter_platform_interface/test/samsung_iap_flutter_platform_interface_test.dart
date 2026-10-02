@@ -98,6 +98,38 @@ OwnedProduct _owned({
   rawJson: rawJson,
 );
 
+SamsungPurchase _purchase({
+  String productId = 'coins_100',
+  String name = '100 coins',
+  String purchaseId = 'a1b2c3',
+  String paymentId = 'TPMTID20260101',
+  String orderId = 'S20260101KRA1234567',
+  SamsungProductType type = SamsungProductType.item,
+  DateTime? purchaseDate,
+  MinorStatus minorStatus = MinorStatus.notMinor,
+  String? obfuscatedAccountId,
+  String? obfuscatedProfileId,
+  double? price = 0.99,
+  String formattedPrice = '£0.99',
+  String currencyCode = 'GBP',
+  String rawJson = '{}',
+}) => SamsungPurchase(
+  productId: productId,
+  name: name,
+  purchaseId: purchaseId,
+  paymentId: paymentId,
+  orderId: orderId,
+  type: type,
+  purchaseDate: purchaseDate,
+  minorStatus: minorStatus,
+  obfuscatedAccountId: obfuscatedAccountId,
+  obfuscatedProfileId: obfuscatedProfileId,
+  price: price,
+  formattedPrice: formattedPrice,
+  currencyCode: currencyCode,
+  rawJson: rawJson,
+);
+
 void main() {
   group(SamsungIapFlutterPlatform, () {
     test('default instance throws until an implementation registers', () {
@@ -116,6 +148,7 @@ void main() {
         () => platform.getOwnedProducts(OwnedProductFilter.all),
         throwsUnimplementedError,
       );
+      expect(() => platform.purchase('coins_100'), throwsUnimplementedError);
     });
 
     test('accepts an instance that extends the base class', () {
@@ -304,6 +337,46 @@ void main() {
       expect(
         _owned(purchaseId: 'a&b c').subscriptionDetailLink,
         'samsungapps://SubscriptionDetail?purchaseId=a%26b+c',
+      );
+    });
+
+    test('purchases with the same fields are equal', () {
+      SamsungPurchase full() => _purchase(
+        purchaseDate: DateTime(2026, 1, 1, 9),
+        obfuscatedAccountId: 'account',
+      );
+
+      expect(full(), full());
+      expect(full().hashCode, full().hashCode);
+    });
+
+    test('purchases differing in any one field are not equal', () {
+      final variants = [
+        _purchase(productId: 'coins_500'),
+        _purchase(name: '500 coins'),
+        _purchase(purchaseId: 'd4e5f6'),
+        _purchase(paymentId: 'TPMTID20260202'),
+        _purchase(orderId: 'S20260202KRA7654321'),
+        _purchase(type: SamsungProductType.subscription),
+        _purchase(purchaseDate: DateTime(2026)),
+        _purchase(minorStatus: MinorStatus.minor),
+        _purchase(obfuscatedAccountId: 'account'),
+        _purchase(obfuscatedProfileId: 'profile'),
+        _purchase(price: 1.99),
+        _purchase(formattedPrice: '£1.99'),
+        _purchase(currencyCode: 'EUR'),
+        _purchase(rawJson: '{"mItemId":"coins_100"}'),
+      ];
+
+      for (final (index, variant) in variants.indexed) {
+        expect(variant, isNot(_purchase()), reason: 'variant $index');
+      }
+    });
+
+    test('a purchase describes itself with its IDs', () {
+      expect(
+        _purchase().toString(),
+        'SamsungPurchase(coins_100, a1b2c3, S20260101KRA1234567)',
       );
     });
 

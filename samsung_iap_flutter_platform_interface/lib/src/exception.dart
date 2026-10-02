@@ -36,6 +36,9 @@ enum SamsungIapErrorKind {
 
   /// Another Samsung IAP call was running, or Samsung is still finishing an
   /// inquiry that timed out.
+  ///
+  /// Safe to retry after a short wait. Samsung refused the call before it
+  /// showed any UI, so nothing was charged.
   busy,
 
   /// The plugin rejected an argument before calling Samsung.
