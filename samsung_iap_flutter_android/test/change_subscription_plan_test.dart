@@ -117,4 +117,32 @@ void main() {
       await expectLater(change(), throwsKind(kind), reason: '$error');
     }
   });
+
+  test('reports the plan-change detail codes as general', () async {
+    for (final detailCode in [1005, 1006, 1012, 1014]) {
+      when(() => api.changeSubscriptionPlan(any(), any(), any(), any(), any()))
+          .thenThrow(
+            PlatformException(
+              code: 'sdk',
+              message: 'Samsung says no.',
+              details: {
+                'errorCode': -1002,
+                'errorDetails': 'IS$detailCode/6050/x',
+                'dialogShown': false,
+              },
+            ),
+          );
+
+      await expectLater(
+        change(),
+        throwsA(
+          isA<SamsungIapException>()
+              .having((e) => e.kind, 'kind', SamsungIapErrorKind.general)
+              .having((e) => e.code, 'code', -1002)
+              .having((e) => e.detailCode, 'detailCode', detailCode),
+        ),
+        reason: '$detailCode',
+      );
+    }
+  });
 }

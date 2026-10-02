@@ -89,18 +89,6 @@ void main() {
     }
   });
 
-  test('reports the plan-change detail codes as general', () async {
-    for (final detailCode in [1005, 1006, 1012, 1014]) {
-      final e = await failWith(
-        sdkError(-1002, details: 'IS$detailCode/6050/x'),
-      );
-
-      expect(e.kind, SamsungIapErrorKind.general, reason: '$detailCode');
-      expect(e.code, -1002);
-      expect(e.detailCode, detailCode);
-    }
-  });
-
   test('maps the bridge codes to their kinds', () async {
     final kinds = {
       'not_sent': SamsungIapErrorKind.busy,
