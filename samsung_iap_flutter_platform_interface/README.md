@@ -2,13 +2,20 @@
 
 [![style: very good analysis][very_good_analysis_badge]][very_good_analysis_link]
 
-A common platform interface for the `samsung_iap_flutter` plugin.
+The common platform interface of [`samsung_iap_flutter`][app_facing_link], an unofficial Flutter
+plugin for Samsung In-App Purchase on Galaxy Store. It holds the models, the enums,
+`SamsungIapException` and the `SamsungIapFlutterPlatform` base class.
 
-This interface allows platform-specific implementations of the `samsung_iap_flutter` plugin, as well as the plugin itself, to ensure they are supporting the same interface.
+## Usage
 
-# Usage
+Apps do not depend on this package directly. Add `samsung_iap_flutter` to your app. It re-exports
+every public type of this package.
 
-To implement a new platform-specific implementation of `samsung_iap_flutter`, extend `SamsungIapFlutterPlatform` with an implementation that performs the platform-specific behavior.
+To write a platform implementation, extend `SamsungIapFlutterPlatform` and set
+`SamsungIapFlutterPlatform.instance` to your implementation when it registers. Extend the class
+with `extends`, not `implements`. The base class checks this, and a method added in a later version
+then throws `UnimplementedError` in your implementation instead of breaking its build.
 
+[app_facing_link]: https://pub.dev/packages/samsung_iap_flutter
 [very_good_analysis_badge]: https://img.shields.io/badge/style-very_good_analysis-B22C89.svg
 [very_good_analysis_link]: https://pub.dev/packages/very_good_analysis
