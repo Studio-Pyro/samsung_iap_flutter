@@ -692,6 +692,55 @@ data class PlatformAckResult (
     return "PlatformAckResult(purchaseId=$purchaseId, statusCode=$statusCode, statusString=$statusString)"
   }
 }
+
+/**
+ * `PromotionEligibilityVo` field for field.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class PlatformPromotionEligibility (
+  val itemId: String,
+  val pricing: String,
+  val json: String
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): PlatformPromotionEligibility {
+      val itemId = pigeonVar_list[0] as String
+      val pricing = pigeonVar_list[1] as String
+      val json = pigeonVar_list[2] as String
+      return PlatformPromotionEligibility(itemId, pricing, json)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      itemId,
+      pricing,
+      json,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as PlatformPromotionEligibility
+    return MessagesPigeonUtils.deepEquals(this.itemId, other.itemId) && MessagesPigeonUtils.deepEquals(this.pricing, other.pricing) && MessagesPigeonUtils.deepEquals(this.json, other.json)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.itemId)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.pricing)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.json)
+    return result
+  }
+  override fun toString(): String {
+    return "PlatformPromotionEligibility(itemId=$itemId, pricing=$pricing, json=$json)"
+  }
+}
 private open class MessagesPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
@@ -740,6 +789,11 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
           PlatformAckResult.fromList(it)
         }
       }
+      138.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          PlatformPromotionEligibility.fromList(it)
+        }
+      }
       else -> super.readValueOfType(type, buffer)
     }
   }
@@ -781,6 +835,10 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
         stream.write(137)
         writeValue(stream, value.toList())
       }
+      is PlatformPromotionEligibility -> {
+        stream.write(138)
+        writeValue(stream, value.toList())
+      }
       else -> super.writeValue(stream, value)
     }
   }
@@ -805,6 +863,8 @@ interface SamsungIapHostApi {
   suspend fun acknowledgePurchases(purchaseIds: String): List<PlatformAckResult>
   /** Completes when the user leaves Samsung's plan-change UI. No timeout. */
   suspend fun changeSubscriptionPlan(oldItemId: String, newItemId: String, prorationMode: PlatformProrationMode, obfuscatedAccountId: String?, obfuscatedProfileId: String?): PlatformPurchase
+  /** [itemIds] is comma-separated and not empty. */
+  suspend fun getPromotionEligibility(itemIds: String): List<PlatformPromotionEligibility>
 
   companion object {
     /** The codec used by SamsungIapHostApi. */
@@ -959,6 +1019,25 @@ interface SamsungIapHostApi {
             CoroutineScope(Dispatchers.Main).launch {
               val wrapped: List<Any?> = try {
                 listOf(api.changeSubscriptionPlan(oldItemIdArg, newItemIdArg, prorationModeArg, obfuscatedAccountIdArg, obfuscatedProfileIdArg))
+              } catch (exception: Throwable) {
+                MessagesPigeonUtils.wrapError(exception)
+              }
+              reply.reply(wrapped)
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.samsung_iap_flutter_android.SamsungIapHostApi.getPromotionEligibility$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val itemIdsArg = args[0] as String
+            CoroutineScope(Dispatchers.Main).launch {
+              val wrapped: List<Any?> = try {
+                listOf(api.getPromotionEligibility(itemIdsArg))
               } catch (exception: Throwable) {
                 MessagesPigeonUtils.wrapError(exception)
               }

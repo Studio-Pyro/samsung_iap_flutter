@@ -193,6 +193,19 @@ class PlatformAckResult {
   String statusString;
 }
 
+/// `PromotionEligibilityVo` field for field.
+class PlatformPromotionEligibility {
+  PlatformPromotionEligibility({
+    required this.itemId,
+    required this.pricing,
+    required this.json,
+  });
+
+  String itemId;
+  String pricing;
+  String json;
+}
+
 @HostApi()
 abstract class SamsungIapHostApi {
   void initialize(PlatformOperationMode mode, bool showErrorDialog);
@@ -232,4 +245,8 @@ abstract class SamsungIapHostApi {
     String? obfuscatedAccountId,
     String? obfuscatedProfileId,
   );
+
+  /// [itemIds] is comma-separated and not empty.
+  @async
+  List<PlatformPromotionEligibility> getPromotionEligibility(String itemIds);
 }

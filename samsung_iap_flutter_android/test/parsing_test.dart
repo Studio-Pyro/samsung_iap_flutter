@@ -132,6 +132,21 @@ void main() {
     }
   });
 
+  test('parsePromotionPricing', () {
+    final cases = {
+      'FreeTrial': PromotionPricing.freeTrial,
+      'TieredPrice': PromotionPricing.tieredPrice,
+      'RegularPrice': PromotionPricing.regularPrice,
+      '': PromotionPricing.unknown,
+      'freeTrial': PromotionPricing.unknown,
+      'FREE_TRIAL': PromotionPricing.unknown,
+      'IntroPrice': PromotionPricing.unknown,
+    };
+    for (final MapEntry(key: input, value: expected) in cases.entries) {
+      expect(parsePromotionPricing(input), expected, reason: input);
+    }
+  });
+
   test('parseProductType', () {
     final cases = {
       'item': SamsungProductType.item,

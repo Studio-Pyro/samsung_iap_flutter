@@ -102,6 +102,16 @@ class SamsungIapFlutterAndroid extends SamsungIapFlutterPlatform {
     ),
   );
 
+  @override
+  Future<List<PromotionEligibility>> getPromotionEligibility(
+    List<String> subscriptionIds,
+  ) => _enqueue(() async {
+    final results = await _api.getPromotionEligibility(
+      subscriptionIds.join(','),
+    );
+    return results.map(promotionEligibilityFromPlatform).toList();
+  });
+
   /// Runs [call] after every earlier call has settled, so a failure never
   /// blocks the calls behind it.
   Future<T> _enqueue<T>(Future<T> Function() call) {

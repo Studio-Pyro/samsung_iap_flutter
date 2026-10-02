@@ -9,6 +9,7 @@ import com.samsung.android.sdk.iap.lib.vo.ConsumeVo
 import com.samsung.android.sdk.iap.lib.vo.ErrorVo
 import com.samsung.android.sdk.iap.lib.vo.OwnedProductVo
 import com.samsung.android.sdk.iap.lib.vo.ProductVo
+import com.samsung.android.sdk.iap.lib.vo.PromotionEligibilityVo
 import com.samsung.android.sdk.iap.lib.vo.PurchaseVo
 import com.samsung.android.sdk.iap.lib.vo.SubscriptionPriceChangeVo
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -125,6 +126,16 @@ class SamsungIapFlutterPlugin(
         }
         return awaitSdk("acknowledgePurchases", BACKGROUND_CALL_TIMEOUT) { done ->
             helper.acknowledgePurchases(purchaseIds) { error: ErrorVo?, results: ArrayList<AcknowledgeVo>? ->
+                done(error) { results!!.map { it.toPlatform() } }
+            }
+        }
+    }
+
+    override suspend fun getPromotionEligibility(itemIds: String): List<PlatformPromotionEligibility> {
+        val helper = requireHelper()
+        requireStore()
+        return awaitSdk("getPromotionEligibility", BACKGROUND_CALL_TIMEOUT) { done ->
+            helper.getPromotionEligibility(itemIds) { error: ErrorVo?, results: ArrayList<PromotionEligibilityVo>? ->
                 done(error) { results!!.map { it.toPlatform() } }
             }
         }
@@ -310,6 +321,12 @@ private fun ConsumeVo.toPlatform() = PlatformAckResult(
     purchaseId = purchaseId.orEmpty(),
     statusCode = statusCode.toLong(),
     statusString = statusString.orEmpty(),
+)
+
+private fun PromotionEligibilityVo.toPlatform() = PlatformPromotionEligibility(
+    itemId = itemId.orEmpty(),
+    pricing = pricing.orEmpty(),
+    json = jsonString.orEmpty(),
 )
 
 private fun SubscriptionPriceChangeVo.toPlatform() = PlatformSubscriptionPriceChange(

@@ -6,6 +6,7 @@ import com.samsung.android.sdk.iap.lib.listener.OnChangeSubscriptionPlanListener
 import com.samsung.android.sdk.iap.lib.listener.OnConsumePurchasedItemsListener
 import com.samsung.android.sdk.iap.lib.listener.OnGetOwnedListListener
 import com.samsung.android.sdk.iap.lib.listener.OnGetProductsDetailsListener
+import com.samsung.android.sdk.iap.lib.listener.OnGetPromotionEligibilityListener
 import com.samsung.android.sdk.iap.lib.listener.OnPaymentListener
 import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyString
@@ -19,6 +20,14 @@ class GuardedCall(
     val call: suspend (SamsungIapFlutterPlugin) -> Any?,
     /** Calls the SDK method with matchers, for stubbing and verifying. */
     val sdk: (IapHelper) -> Unit,
+)
+
+val promotionCall = GuardedCall(
+    "getPromotionEligibility",
+    OnGetPromotionEligibilityListener::class.java,
+    sent = true,
+    call = { it.getPromotionEligibility("monthly") },
+    sdk = { it.getPromotionEligibility(anyString(), any()) },
 )
 
 val inquiryCalls = listOf(
@@ -36,6 +45,7 @@ val inquiryCalls = listOf(
         call = { it.getOwnedList(PlatformOwnedProductFilter.ALL) },
         sdk = { it.getOwnedList(anyString(), any()) },
     ),
+    promotionCall,
 )
 
 val consumeCall = GuardedCall(

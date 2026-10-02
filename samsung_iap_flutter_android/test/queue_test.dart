@@ -71,6 +71,14 @@ final queuedCalls = <String, QueuedCall>{
       prorationMode: ProrationMode.instantProratedDate,
     ),
   ),
+  'getPromotionEligibility': (
+    stub: (api, sent) =>
+        when(() => api.getPromotionEligibility(any())).thenAnswer((_) async {
+          sent();
+          return [];
+        }),
+    call: (plugin) => plugin.getPromotionEligibility(['monthly']),
+  ),
 };
 
 void main() {

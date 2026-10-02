@@ -87,6 +87,15 @@ PurchaseAckResult ackResultFromPlatform(PlatformAckResult r) =>
       message: r.statusString,
     );
 
+/// Converts the wire mirror of `PromotionEligibilityVo` into the public model.
+PromotionEligibility promotionEligibilityFromPlatform(
+  PlatformPromotionEligibility e,
+) => PromotionEligibility(
+  productId: e.itemId,
+  pricing: parsePromotionPricing(e.pricing),
+  rawJson: e.json,
+);
+
 SubscriptionPriceChange? _priceChange(PlatformSubscriptionPriceChange? c) =>
     c == null
     ? null
