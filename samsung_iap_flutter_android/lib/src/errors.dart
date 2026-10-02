@@ -63,9 +63,9 @@ SamsungIapException exceptionFromPlatform(PlatformException e) {
 }
 
 /// Parses the digits before the first `/` of Samsung's error details, for
-/// example `9224` from `IS9224/6050/NwCbCAxypi`.
+/// example `9224` from `IS9224/6050/NwCbCAxypi`. Returns `null` instead of
+/// throwing when there are none or they overflow an `int`.
 int? parseDetailCode(String? details) {
   final head = details?.split('/').first ?? '';
-  final digits = RegExp(r'\d+').firstMatch(head)?[0];
-  return digits == null ? null : int.parse(digits);
+  return int.tryParse(RegExp(r'\d+').firstMatch(head)?[0] ?? '');
 }

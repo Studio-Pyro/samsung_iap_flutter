@@ -68,8 +68,16 @@ void main() {
   test('parses the detail code before the first slash', () async {
     final detailCodes = <String?, int?>{
       'IS9224/6050/NwCbCAxypi': 9224,
+      '9226/6050/x': 9226,
+      'E7002/x': 7002,
+      'IS9013': 9013,
       '100010': 100010,
+      '1014 change requested/x': 1014,
       'abc/123': null,
+      '/9224/6050': null,
+      'IS/9224': null,
+      'Unknown error': null,
+      '99999999999999999999/x': null,
       '': null,
       null: null,
     };
