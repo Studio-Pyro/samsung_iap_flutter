@@ -106,17 +106,24 @@ A batch can partly fail. The call returns one `PurchaseAckResult` per purchase, 
 its own `status`. The call throws a `SamsungIapException` only when the whole call fails, for
 example when Galaxy Store is not usable.
 
-Handle the results like this:
+Handle each purchase by its `status`:
 
 - **Treat `alreadyProcessed` as done.** `isProcessed` is `true` for `success` and for
   `alreadyProcessed`, which means an earlier call already consumed or acknowledged the purchase.
-- **Retry on `network` and `serviceError`.** A `network` exception fails the whole call, and
-  `serviceError` fails one purchase. A retry is safe: a purchase that an earlier call handled
-  reports `alreadyProcessed`. This includes a call that timed out after 30 seconds but reached
-  Samsung.
+- **Retry `serviceError`.** Send that purchase again in a later call.
 - **Do not retry the other statuses.** `invalidPurchaseId`, `failedOrder`, `invalidProductType`
-  and `unauthorized` describe the purchase, not the connection. Log them with `statusCode` and
-  `message`.
+  and `unauthorized` describe the purchase, not the connection. `unknown` is a status this
+  version of the plugin does not know. Log them with `statusCode` and `message`.
+
+Handle a failed call by `SamsungIapException.kind`:
+
+- **Retry the batch on `network`.** A purchase that an earlier call handled reports
+  `alreadyProcessed`, so the retry is safe. This includes a call that timed out after 30 seconds
+  but reached Samsung.
+- **Check the IDs on `general` with `detailCode` 9226.** Samsung rejected a purchase ID and
+  failed the whole call instead of that one purchase. Send only purchase IDs from
+  `getOwnedProducts`, or split the batch to find the bad ID. A retry of the good IDs is safe,
+  for the same reason as on `network`.
 - **Update Galaxy Store for `storeUpdateRequired`.** `acknowledge` needs Galaxy Store 4.5.90 or
   later. On an older version, it throws `storeUpdateRequired` before it calls Samsung.
 
@@ -142,7 +149,7 @@ Content-Type: application/json
 
 Send `{"action": "acknowledge"}` to acknowledge. The response has a `statusCode` per purchase, with
 the same codes as `PurchaseAckResult.statusCode`. With this approach, the server that grants a
-purchase is also the one that consumes it, so the two cannot get out of step. See Samsung's
+purchase is also the one that consumes it, so granting and consuming happen in one place. See Samsung's
 [Purchase Acknowledgment API][ack_api_link] for the batch form, and
 [Get Started with the IAP APIs][iap_api_link] for the access token.
 

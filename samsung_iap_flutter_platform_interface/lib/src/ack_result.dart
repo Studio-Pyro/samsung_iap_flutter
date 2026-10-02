@@ -3,7 +3,7 @@ import 'package:samsung_iap_flutter_platform_interface/src/enums.dart';
 
 /// Samsung's answer for one purchase in a `consume` or `acknowledge` batch.
 ///
-/// A batch can partly fail: each purchase gets its own result even when the
+/// A batch can partly fail. Each purchase gets its own result, even when the
 /// call as a whole succeeds.
 @immutable
 class PurchaseAckResult {

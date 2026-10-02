@@ -110,14 +110,18 @@ class SamsungIap {
   /// so check each result. [PurchaseAckResult.isProcessed] is `true` for a
   /// purchase that is done, including one that an earlier call handled.
   ///
-  /// Throws a [SamsungIapException] when the call as a whole fails: of kind
-  /// [SamsungIapErrorKind.invalidArgument] for an empty list, an empty ID or
-  /// one that contains a comma, [SamsungIapErrorKind.storeUnavailable] when
-  /// Galaxy Store is not usable, and [SamsungIapErrorKind.network] when
-  /// Samsung does not answer within 30 seconds. Unlike a failed [purchase],
-  /// a [SamsungIapErrorKind.network] failure here is safe to retry as is:
-  /// Samsung may still apply a call that timed out, and the retry then
-  /// reports [AckStatus.alreadyProcessed].
+  /// Throws a [SamsungIapException] when the call as a whole fails. Its kind
+  /// is one of these:
+  ///
+  /// - [SamsungIapErrorKind.invalidArgument] for an empty list, an empty ID
+  ///   or one that contains a comma.
+  /// - [SamsungIapErrorKind.storeUnavailable] when Galaxy Store is not usable.
+  /// - [SamsungIapErrorKind.general] with [SamsungIapException.detailCode]
+  ///   9226 when Samsung rejects a purchase ID for the whole batch.
+  /// - [SamsungIapErrorKind.network] when Samsung does not answer within 30
+  ///   seconds. Unlike a failed [purchase], this is safe to retry as is.
+  ///   Samsung may still apply a call that timed out, and the retry then
+  ///   reports [AckStatus.alreadyProcessed].
   Future<List<PurchaseAckResult>> consume(List<String> purchaseIds) async {
     _checkIdBatch('purchase', purchaseIds);
     return await _platform.consume(purchaseIds);
