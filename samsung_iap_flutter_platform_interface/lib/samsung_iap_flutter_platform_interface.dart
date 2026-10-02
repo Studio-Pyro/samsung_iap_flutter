@@ -1,3 +1,9 @@
+/// The platform interface of the `samsung_iap_flutter` plugin: the shared
+/// models, enums and exception, and the [SamsungIapFlutterPlatform] base class.
+///
+/// Apps depend on `samsung_iap_flutter` instead of this package.
+library;
+
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:samsung_iap_flutter_platform_interface/src/ack_result.dart';
 import 'package:samsung_iap_flutter_platform_interface/src/enums.dart';
