@@ -119,7 +119,7 @@ class SamsungIap {
   /// Samsung may still apply a call that timed out, and the retry then
   /// reports [AckStatus.alreadyProcessed].
   Future<List<PurchaseAckResult>> consume(List<String> purchaseIds) async {
-    _checkPurchaseIds(purchaseIds);
+    _checkIdBatch('purchase', purchaseIds);
     return await _platform.consume(purchaseIds);
   }
 
@@ -132,7 +132,7 @@ class SamsungIap {
   /// [SamsungIapErrorKind.storeUpdateRequired] when Galaxy Store is older
   /// than 4.5.90, which cannot acknowledge.
   Future<List<PurchaseAckResult>> acknowledge(List<String> purchaseIds) async {
-    _checkPurchaseIds(purchaseIds);
+    _checkIdBatch('purchase', purchaseIds);
     return await _platform.acknowledge(purchaseIds);
   }
 }
@@ -149,14 +149,15 @@ void _checkIds(String kind, List<String> ids) {
   }
 }
 
-void _checkPurchaseIds(List<String> ids) {
+/// Like [_checkIds], and also rejects an empty batch.
+void _checkIdBatch(String kind, List<String> ids) {
   if (ids.isEmpty) {
-    throw const SamsungIapException(
+    throw SamsungIapException(
       SamsungIapErrorKind.invalidArgument,
-      message: 'The list of purchase IDs is empty.',
+      message: 'The list of $kind IDs is empty.',
     );
   }
-  _checkIds('purchase', ids);
+  _checkIds(kind, ids);
 }
 
 // The same pattern the SDK refuses with, so the app gets invalidArgument
