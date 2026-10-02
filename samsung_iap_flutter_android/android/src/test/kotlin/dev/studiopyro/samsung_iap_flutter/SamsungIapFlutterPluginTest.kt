@@ -22,6 +22,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.TestFactory
 import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.ArgumentMatchers.anyString
@@ -30,6 +32,7 @@ import org.mockito.ArgumentMatchers.isNull
 import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.mockStatic
+import org.mockito.Mockito.mockingDetails
 import org.mockito.Mockito.never
 import org.mockito.Mockito.reset
 import org.mockito.Mockito.verify
@@ -359,43 +362,40 @@ class SamsungIapFlutterPluginTest : PluginTestBase() {
         PlatformAckResult(purchaseId = "", statusCode = 9, statusString = "service error"),
     )
 
-    @Test
-    fun consumePurchasedItemsSendsTheIdsAndReturnsEachResult() = runTest {
-        val results = arrayListOf(
-            ackVo(ConsumeVo::class.java, "a1b2c3", 0, "success"),
-            ackVo(ConsumeVo::class.java, "bogus", 1, null),
-            ackVo(ConsumeVo::class.java, null, 9, "service error"),
-        )
-        answer(consumeCall) { consumeCall.callBack(it, errorVo(0), results) }
+    @TestFactory
+    fun ackCallsSendTheIdsAndReturnEachResult() = listOf(
+        Triple(consumeCall, ConsumeVo::class.java, SamsungIapFlutterPlugin::consumePurchasedItems),
+        Triple(acknowledgeCall, AcknowledgeVo::class.java, SamsungIapFlutterPlugin::acknowledgePurchases),
+    ).map { (ack, vo, send) ->
+        DynamicTest.dynamicTest(ack.name) {
+            reset(helper)
+            runTest {
+                val results = arrayListOf(
+                    ackVo(vo, "a1b2c3", 0, "success"),
+                    ackVo(vo, "bogus", 1, null),
+                    ackVo(vo, null, 9, "service error"),
+                )
+                answer(ack) { ack.callBack(it, errorVo(0), results) }
 
-        assertEquals(expectedAckResults, initializedPlugin().consumePurchasedItems("a1b2c3,bogus"))
-        verify(helper).consumePurchasedItems(eq("a1b2c3,bogus"), any())
+                assertEquals(expectedAckResults, send(initializedPlugin(), "a1b2c3,bogus"))
+                val sent = mockingDetails(helper).invocations.single { it.method.name == ack.name }
+                assertEquals("a1b2c3,bogus", sent.arguments.first())
+            }
+        }
     }
 
-    @Test
-    fun acknowledgePurchasesSendsTheIdsAndReturnsEachResult() = runTest {
-        val results = arrayListOf(
-            ackVo(AcknowledgeVo::class.java, "a1b2c3", 0, "success"),
-            ackVo(AcknowledgeVo::class.java, "bogus", 1, null),
-            ackVo(AcknowledgeVo::class.java, null, 9, "service error"),
-        )
-        answer(acknowledgeCall) { acknowledgeCall.callBack(it, errorVo(0), results) }
+    @TestFactory
+    fun ackCallsMapAFalseReturnToNotSent() = ackCalls.map { ack ->
+        DynamicTest.dynamicTest(ack.name) {
+            reset(helper)
+            runTest {
+                doAnswer { false }.`when`(helper).let(ack.sdk)
 
-        assertEquals(expectedAckResults, initializedPlugin().acknowledgePurchases("a1b2c3,bogus"))
-        verify(helper).acknowledgePurchases(eq("a1b2c3,bogus"), any())
-    }
+                val error = assertFailsWith<FlutterError> { ack.call(initializedPlugin()) }
 
-    @Test
-    fun consumeAndAcknowledgeMapAFalseReturnToNotSent() = runTest {
-        doAnswer { false }.`when`(helper).consumePurchasedItems(anyString(), any())
-        doAnswer { false }.`when`(helper).acknowledgePurchases(anyString(), any())
-        val plugin = initializedPlugin()
-
-        val consume = assertFailsWith<FlutterError> { plugin.consumePurchasedItems("a1b2c3") }
-        val acknowledge = assertFailsWith<FlutterError> { plugin.acknowledgePurchases("a1b2c3") }
-
-        assertEquals("not_sent" to "consumePurchasedItems", consume.code to consume.details)
-        assertEquals("not_sent" to "acknowledgePurchases", acknowledge.code to acknowledge.details)
+                assertEquals("not_sent" to ack.name, error.code to error.details)
+            }
+        }
     }
 
     @Test
