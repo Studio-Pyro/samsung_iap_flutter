@@ -1,10 +1,21 @@
 name: samsung_iap_flutter_platform_interface
-description: A common platform interface for the samsung_iap_flutter plugin.
-version: 0.1.0+1
-
+description: Common platform interface for samsung_iap_flutter, an unofficial Flutter plugin for Samsung In-App Purchase. Holds the shared models, enums and exception.
+version: 0.1.0
+homepage: https://github.com/Studio-Pyro/samsung_iap_flutter
+repository: https://github.com/Studio-Pyro/samsung_iap_flutter/tree/main/samsung_iap_flutter_platform_interface
+issue_tracker: https://github.com/Studio-Pyro/samsung_iap_flutter/issues
+topics:
+  - in-app-purchase
+  - iap
+  - samsung
+  - galaxy-store
 
 environment:
   sdk: ^3.13.0
+  flutter: ">=3.47.0"
+
+platforms:
+  android:
 
 dependencies:
   flutter:
