@@ -149,9 +149,8 @@ Content-Type: application/json
 
 Send `{"action": "acknowledge"}` to acknowledge. The response has a `statusCode` per purchase, with
 the same codes as `PurchaseAckResult.statusCode`. With this approach, the server that grants a
-purchase is also the one that consumes it, so granting and consuming happen in one place. See Samsung's
-[Purchase Acknowledgment API][ack_api_link] for the batch form, and
-[Get Started with the IAP APIs][iap_api_link] for the access token.
+purchase also consumes it. See Samsung's [Purchase Acknowledgment API][ack_api_link] for the batch
+form, and [Get Started with the IAP APIs][iap_api_link] for the access token.
 
 [ack_api_link]: https://developer.samsung.com/iap/api/iap-purchase-acknowledgment.html
 [iap_api_link]: https://developer.samsung.com/iap/api/get-started.html
