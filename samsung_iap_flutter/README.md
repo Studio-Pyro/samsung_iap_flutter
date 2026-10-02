@@ -19,6 +19,8 @@ Every call throws one type, `SamsungIapException`. Switch over its `kind`. The s
 exhaustive, so a kind added in a later version is a compile error instead of a silent fallthrough.
 
 ```dart
+const iap = SamsungIap();
+
 try {
   final purchase = await iap.purchase(
     'coins_100',
@@ -35,11 +37,11 @@ try {
       // The user may own the product now. Check before anything else.
       await reconcile(await iap.getOwnedProducts());
     case SamsungIapErrorKind.busy || SamsungIapErrorKind.initializationFailed:
-      showRetry();
+      if (!e.dialogShown) showRetry(); // Stop offering it after a few tries.
     case SamsungIapErrorKind.accountNotSignedIn:
-      showSignInPrompt();
+      if (!e.dialogShown) showSignInPrompt();
     case SamsungIapErrorKind.storeUpdateRequired:
-      openGalaxyStore();
+      if (!e.dialogShown) openGalaxyStore();
     case SamsungIapErrorKind.notAvailableInCountry ||
         SamsungIapErrorKind.storeUnavailable:
       hideStore();
@@ -68,10 +70,10 @@ errors and sets `dialogShown`. Show your own message only when `dialogShown` is 
 | `storeUpdateRequired` | -1001, or `acknowledge` on Galaxy Store older than 4.5.90 | Send the user to Galaxy Store to update it, then retry. |
 | `accountNotSignedIn` | -1014 or -1015 | Ask the user to sign in to a Samsung account, then retry. |
 | `purchaseResultUnknown` | -1006, or no purchase in Samsung's answer | Reconcile with `getOwnedProducts` before you tell the user anything. The user may have paid. |
-| `busy` | Samsung refused to start the call, for example while it finishes one that timed out | Retry after a short wait. Samsung showed no UI, so it charged nothing. |
+| `busy` | Samsung refused to start the call, for example while it finishes one that timed out | Retry a few times with a growing delay. Samsung showed no UI, so it charged nothing. Samsung also refuses some invalid input this way, so stop if `busy` persists. |
 | `invalidArgument` | The plugin, before it calls Samsung | Fix the call. Each method's docs list its rules. |
 | `notInitialized` | The plugin | Call `initialize` first. |
-| `initializationFailed` | -1000 | Retry. |
+| `initializationFailed` | -1000 | With `detailCode` 10011, retry a few times with a growing delay. With 10000, the IAP client app is invalid, and with 10001, the Samsung Checkout app is invalid. Do not retry those two. Hide the store UI. |
 | `general` | -1002 | Read `detailCode`. See below. |
 | `unknown` | -1004 and any other code | Log `code` and `message`. |
 
