@@ -65,6 +65,16 @@ SamsungPurchase purchaseFromPlatform(PlatformPurchase p) => SamsungPurchase(
   rawJson: p.json,
 );
 
+/// Converts the wire mirror of `ConsumeVo` or `AcknowledgeVo` into the public
+/// model.
+PurchaseAckResult ackResultFromPlatform(PlatformAckResult r) =>
+    PurchaseAckResult(
+      purchaseId: r.purchaseId,
+      status: parseAckStatus(r.statusCode),
+      statusCode: r.statusCode,
+      message: r.statusString,
+    );
+
 SubscriptionPriceChange? _priceChange(PlatformSubscriptionPriceChange? c) =>
     c == null
     ? null

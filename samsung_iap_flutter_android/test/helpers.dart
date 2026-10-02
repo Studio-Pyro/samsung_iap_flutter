@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:samsung_iap_flutter_android/samsung_iap_flutter_android.dart';
@@ -20,6 +21,43 @@ Future<void> initializeForTest(SamsungIapFlutterAndroid plugin) =>
 
 Matcher throwsKind(SamsungIapErrorKind kind) =>
     throwsA(isA<SamsungIapException>().having((e) => e.kind, 'kind', kind));
+
+/// A batch where one purchase succeeds, one has an unknown ID, and one has a
+/// status this plugin does not know.
+final ackWires = [
+  PlatformAckResult(purchaseId: 'a1b2c3', statusCode: 0, statusString: 'ok'),
+  PlatformAckResult(purchaseId: 'bogus', statusCode: 1, statusString: 'no'),
+  PlatformAckResult(purchaseId: 'd4e5f6', statusCode: 42, statusString: '?'),
+];
+
+/// [ackWires] as the public results.
+const ackResults = [
+  PurchaseAckResult(
+    purchaseId: 'a1b2c3',
+    status: AckStatus.success,
+    statusCode: 0,
+    message: 'ok',
+  ),
+  PurchaseAckResult(
+    purchaseId: 'bogus',
+    status: AckStatus.invalidPurchaseId,
+    statusCode: 1,
+    message: 'no',
+  ),
+  PurchaseAckResult(
+    purchaseId: 'd4e5f6',
+    status: AckStatus.unknown,
+    statusCode: 42,
+    message: '?',
+  ),
+];
+
+/// A Samsung error for the whole call, as the Kotlin bridge sends it.
+PlatformException sdkError(int code) => PlatformException(
+  code: 'sdk',
+  message: 'Samsung says no.',
+  details: {'errorCode': code, 'errorDetails': '', 'dialogShown': false},
+);
 
 /// A `PurchaseVo` mirror with every field set.
 PlatformPurchase purchaseWire({

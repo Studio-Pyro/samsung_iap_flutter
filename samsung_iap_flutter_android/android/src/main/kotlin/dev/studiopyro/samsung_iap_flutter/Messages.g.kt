@@ -630,6 +630,55 @@ data class PlatformPurchase (
     return "PlatformPurchase(itemId=$itemId, itemName=$itemName, itemPrice=$itemPrice, itemPriceString=$itemPriceString, currencyCode=$currencyCode, type=$type, paymentId=$paymentId, purchaseId=$purchaseId, orderId=$orderId, purchaseDate=$purchaseDate, minorStatus=$minorStatus, obfuscatedAccountId=$obfuscatedAccountId, obfuscatedProfileId=$obfuscatedProfileId, json=$json)"
   }
 }
+
+/**
+ * `ConsumeVo` and `AcknowledgeVo`, which share their fields.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class PlatformAckResult (
+  val purchaseId: String,
+  val statusCode: Long,
+  val statusString: String
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): PlatformAckResult {
+      val purchaseId = pigeonVar_list[0] as String
+      val statusCode = pigeonVar_list[1] as Long
+      val statusString = pigeonVar_list[2] as String
+      return PlatformAckResult(purchaseId, statusCode, statusString)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      purchaseId,
+      statusCode,
+      statusString,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as PlatformAckResult
+    return MessagesPigeonUtils.deepEquals(this.purchaseId, other.purchaseId) && MessagesPigeonUtils.deepEquals(this.statusCode, other.statusCode) && MessagesPigeonUtils.deepEquals(this.statusString, other.statusString)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.purchaseId)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.statusCode)
+    result = 31 * result + MessagesPigeonUtils.deepHash(this.statusString)
+    return result
+  }
+  override fun toString(): String {
+    return "PlatformAckResult(purchaseId=$purchaseId, statusCode=$statusCode, statusString=$statusString)"
+  }
+}
 private open class MessagesPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
@@ -668,6 +717,11 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
           PlatformPurchase.fromList(it)
         }
       }
+      136.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          PlatformAckResult.fromList(it)
+        }
+      }
       else -> super.readValueOfType(type, buffer)
     }
   }
@@ -701,6 +755,10 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
         stream.write(135)
         writeValue(stream, value.toList())
       }
+      is PlatformAckResult -> {
+        stream.write(136)
+        writeValue(stream, value.toList())
+      }
       else -> super.writeValue(stream, value)
     }
   }
@@ -716,6 +774,13 @@ interface SamsungIapHostApi {
   suspend fun getOwnedList(filter: PlatformOwnedProductFilter): List<PlatformOwnedProduct>
   /** Completes when the user leaves Samsung's payment sheet. No timeout. */
   suspend fun startPayment(itemId: String, obfuscatedAccountId: String?, obfuscatedProfileId: String?): PlatformPurchase
+  /** [purchaseIds] is comma-separated and not empty. */
+  suspend fun consumePurchasedItems(purchaseIds: String): List<PlatformAckResult>
+  /**
+   * [purchaseIds] is comma-separated and not empty. Fails with
+   * `store_update_required` on a Galaxy Store that cannot acknowledge.
+   */
+  suspend fun acknowledgePurchases(purchaseIds: String): List<PlatformAckResult>
 
   companion object {
     /** The codec used by SamsungIapHostApi. */
@@ -809,6 +874,44 @@ interface SamsungIapHostApi {
             CoroutineScope(Dispatchers.Main).launch {
               val wrapped: List<Any?> = try {
                 listOf(api.startPayment(itemIdArg, obfuscatedAccountIdArg, obfuscatedProfileIdArg))
+              } catch (exception: Throwable) {
+                MessagesPigeonUtils.wrapError(exception)
+              }
+              reply.reply(wrapped)
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.samsung_iap_flutter_android.SamsungIapHostApi.consumePurchasedItems$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val purchaseIdsArg = args[0] as String
+            CoroutineScope(Dispatchers.Main).launch {
+              val wrapped: List<Any?> = try {
+                listOf(api.consumePurchasedItems(purchaseIdsArg))
+              } catch (exception: Throwable) {
+                MessagesPigeonUtils.wrapError(exception)
+              }
+              reply.reply(wrapped)
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.samsung_iap_flutter_android.SamsungIapHostApi.acknowledgePurchases$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val purchaseIdsArg = args[0] as String
+            CoroutineScope(Dispatchers.Main).launch {
+              val wrapped: List<Any?> = try {
+                listOf(api.acknowledgePurchases(purchaseIdsArg))
               } catch (exception: Throwable) {
                 MessagesPigeonUtils.wrapError(exception)
               }

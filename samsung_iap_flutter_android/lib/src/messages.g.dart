@@ -651,6 +651,61 @@ class PlatformPurchase {
   }
 }
 
+/// `ConsumeVo` and `AcknowledgeVo`, which share their fields.
+class PlatformAckResult {
+  PlatformAckResult({
+    required this.purchaseId,
+    required this.statusCode,
+    required this.statusString,
+  });
+
+  String purchaseId;
+
+  int statusCode;
+
+  String statusString;
+
+  List<Object?> _toList() {
+    return <Object?>[purchaseId, statusCode, statusString];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static PlatformAckResult decode(Object result) {
+    result as List<Object?>;
+    return PlatformAckResult(
+      purchaseId: result[0]! as String,
+      statusCode: result[1]! as int,
+      statusString: result[2]! as String,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! PlatformAckResult || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(purchaseId, other.purchaseId) &&
+        _deepEquals(statusCode, other.statusCode) &&
+        _deepEquals(statusString, other.statusString);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'PlatformAckResult(purchaseId: $purchaseId, statusCode: $statusCode, statusString: $statusString)';
+  }
+}
+
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -679,6 +734,9 @@ class _PigeonCodec extends StandardMessageCodec {
     } else if (value is PlatformPurchase) {
       buffer.putUint8(135);
       writeValue(buffer, value.encode());
+    } else if (value is PlatformAckResult) {
+      buffer.putUint8(136);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -704,6 +762,8 @@ class _PigeonCodec extends StandardMessageCodec {
         return PlatformOwnedProduct.decode(readValue(buffer)!);
       case 135:
         return PlatformPurchase.decode(readValue(buffer)!);
+      case 136:
+        return PlatformAckResult.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -839,5 +899,54 @@ class SamsungIapHostApi {
       isNullValid: false,
     );
     return pigeonVar_replyValue! as PlatformPurchase;
+  }
+
+  /// [purchaseIds] is comma-separated and not empty.
+  Future<List<PlatformAckResult>> consumePurchasedItems(
+    String purchaseIds,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.samsung_iap_flutter_android.SamsungIapHostApi.consumePurchasedItems$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[purchaseIds],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return (pigeonVar_replyValue! as List<Object?>).cast<PlatformAckResult>();
+  }
+
+  /// [purchaseIds] is comma-separated and not empty. Fails with
+  /// `store_update_required` on a Galaxy Store that cannot acknowledge.
+  Future<List<PlatformAckResult>> acknowledgePurchases(
+    String purchaseIds,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.samsung_iap_flutter_android.SamsungIapHostApi.acknowledgePurchases$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[purchaseIds],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return (pigeonVar_replyValue! as List<Object?>).cast<PlatformAckResult>();
   }
 }

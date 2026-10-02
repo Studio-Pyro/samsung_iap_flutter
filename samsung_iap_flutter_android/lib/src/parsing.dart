@@ -55,6 +55,18 @@ PriceChangeMode parsePriceChangeMode(String value) => switch (value) {
   _ => PriceChangeMode.unknown,
 };
 
+/// Parses the status code of a `ConsumeVo` or `AcknowledgeVo`.
+AckStatus parseAckStatus(int code) => switch (code) {
+  0 => AckStatus.success,
+  1 => AckStatus.invalidPurchaseId,
+  2 => AckStatus.failedOrder,
+  3 => AckStatus.invalidProductType,
+  4 => AckStatus.alreadyProcessed,
+  5 => AckStatus.unauthorized,
+  9 => AckStatus.serviceError,
+  _ => AckStatus.unknown,
+};
+
 /// Parses the SDK's `item`/`subscription` product type.
 SamsungProductType parseProductType(String value) => switch (value) {
   'item' => SamsungProductType.item,
