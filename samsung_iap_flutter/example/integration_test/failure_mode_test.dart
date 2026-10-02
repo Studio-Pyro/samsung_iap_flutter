@@ -17,22 +17,15 @@ void main() {
         iap.initialize(mode: OperationMode.testFailure, showErrorDialog: false),
   );
 
-  // The detail code Samsung documents for each call, or null where it
-  // documents none.
+  // The calls that show no Samsung UI, each with the detail code Samsung
+  // documents, or null where it documents none. `purchase` and
+  // `changeSubscriptionPlan` are manual checks, because Samsung's test-mode
+  // notice blocks every later call.
   final calls = <String, (Future<Object?> Function(), int?)>{
     'getProducts': (() => iap.getProducts([_bogusId]), 9013),
     'getOwnedProducts': (iap.getOwnedProducts, 9000),
-    'purchase': (() => iap.purchase(_bogusId), 9014),
     'consume': (() => iap.consume([_bogusId]), 9005),
     'acknowledge': (() => iap.acknowledge([_bogusId]), null),
-    'changeSubscriptionPlan': (
-      () => iap.changeSubscriptionPlan(
-        fromProductId: _bogusId,
-        toProductId: '$_bogusId-2',
-        prorationMode: ProrationMode.deferred,
-      ),
-      null,
-    ),
     'getPromotionEligibility': (
       () => iap.getPromotionEligibility([_bogusId]),
       null,
@@ -40,12 +33,20 @@ void main() {
   };
 
   for (final MapEntry(key: name, value: (call, documented)) in calls.entries) {
-    test('$name fails with general and a detail code', () async {
+    test('$name fails with a detail code', () async {
       try {
         final result = await call();
         fail('$name succeeded in TEST_FAILURE mode: $result');
       } on SamsungIapException catch (e) {
         debugPrint('TEST_FAILURE $name: $e');
+        expect(
+          e.detailCode,
+          isNot(9201),
+          reason:
+              'setup failure, not a TEST_FAILURE result: Samsung reports 9201 '
+              'until the app has IAP activated and products registered in '
+              'Seller Portal. $e',
+        );
         expect(e.kind, SamsungIapErrorKind.general, reason: '$e');
         expect(e.detailCode, documented ?? isNotNull, reason: '$e');
         expect(e.dialogShown, isFalse, reason: '$e');

@@ -167,29 +167,41 @@ flutter test integration_test/device_test.dart \
   --dart-define=SAMSUNG_IAP_TRIAL_ID=<trial subscription id>
 ```
 
-The failure-mode tests run all seven Samsung calls in TEST_FAILURE mode, where Samsung fails every
-request on purpose. They need no product IDs and buy nothing. Each test expects `general` and prints
-the detail code. The tests turn off Samsung's error dialogs and check that no error reports one. If
-`purchase` or `changeSubscriptionPlan` opens Samsung UI, close it.
+The failure-mode tests run the five Samsung calls that show no UI in TEST_FAILURE mode, where
+Samsung fails each request on purpose. They need no product IDs and buy nothing. Each test expects
+`general` with a detail code. It prints the error. A 9201 detail code fails the test as a setup
+failure. Samsung reports 9201 before it applies TEST_FAILURE, until the app has IAP activated and
+products registered in Seller Portal. The tests turn off Samsung's error dialogs and check that no
+error reports one. `purchase` and `changeSubscriptionPlan` are manual checks, because Samsung's
+test-mode notice blocks every call after them. See manual check 13.
 
 ```sh
 flutter test integration_test/failure_mode_test.dart
 ```
 
-Samsung documents a detail code for four of the calls, and the tests assert those codes. No device
-run has confirmed them yet. For the other three calls, the tests check only that a detail code is
-present, because a code Samsung does not document is not a contract. Record each code you observe in
-this table.
+Samsung documents a detail code for three of the five calls, and the tests assert those codes. For
+the other two calls, the tests check only that a detail code is present, because a code Samsung does
+not document is not a contract. Record each code you observe in this table.
+
+The observed column is from a Galaxy S22 (SM-S901B) with Android 16 and Galaxy Store 4.6.11.4, on
+2026-10-02, after IAP was set up for the app in Seller Portal. Each service call returned the raw
+server code with no details. Before that setup, the same calls returned 9201 instead, in both TEST
+and TEST_FAILURE modes.
 
 | Call | Expected `detailCode` | Observed |
 |---|---|---|
-| `getProducts` | 9013 (documented, unverified) | Not run yet |
-| `getOwnedProducts` | 9000 (documented, unverified) | Not run yet |
-| `purchase` | 9014 (documented, unverified) | Not run yet |
-| `consume` | 9005 (documented, unverified) | Not run yet |
-| `acknowledge` | Not documented | Not run yet |
-| `changeSubscriptionPlan` | Not documented | Not run yet |
-| `getPromotionEligibility` | Not documented | Not run yet |
+| `getProducts` | 9013 (documented) | `general`, code 9013, `detailCode` 9013 |
+| `getOwnedProducts` | 9000 (documented) | `general`, code 9000, `detailCode` 9000 |
+| `consume` | 9005 (documented) | `general`, code 9005, `detailCode` 9005 |
+| `acknowledge` | Not documented | `general`, code 9005, `detailCode` 9005 |
+| `getPromotionEligibility` | Not documented | `general`, code 9000, `detailCode` 9000 |
+| `purchase` (manual) | 9014 (documented, unverified) | Samsung showed its test-mode notice and waited. Not recorded yet. |
+| `changeSubscriptionPlan` (manual) | Not documented | `productNotFound`, code -1005, `detailCode` 9207, in a run before the IAP setup |
+
+In TEST mode on the same device after the setup, `getOwnedProducts` returned an empty list.
+`getProducts` with the ID of a registered item, and without IDs, threw `productNotFound` with code
+9207 and `detailCode` 9207. Samsung documents 9207 as a product ID that does not exist in the
+current operation mode.
 
 Some checks cannot be automated. Do them by hand in the example app, which starts in TEST mode:
 
@@ -224,7 +236,15 @@ Some checks cannot be automated. Do them by hand in the example app, which start
     error, record the mapping as unobservable there. Sign in again as the license tester.
 
     Observed: not run yet.
-13. Check that a free trial does not apply again, after a purchase and after a re-subscription. This
+13. Check `purchase` and `changeSubscriptionPlan` in TEST_FAILURE mode. In TEST mode, tap
+    **Initialize** and **Get products**. Pick `testFailure` and tap **Initialize** again. The
+    product list stays. Tap **Buy** on a product. Samsung shows its test-mode notice. Tap
+    **Continue**, and record the error and its detail code on the next line. Samsung documents
+    9014. Then pick two subscription tiers below the products and tap **Change plan**. Record that
+    error too. Pick `test` and tap **Initialize** before the next check.
+
+    Observed: not run yet.
+14. Check that a free trial does not apply again, after a purchase and after a re-subscription. This
     step uses up the trial for the tester, so do it last, with the subscription you passed in
     `SAMSUNG_IAP_TRIAL_ID`. To run the promotion test again, use a different tester or a new
     subscription.

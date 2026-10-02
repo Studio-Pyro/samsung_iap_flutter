@@ -5,7 +5,6 @@ const Map<int, SamsungIapErrorKind> _sdkKinds = {
   1: SamsungIapErrorKind.userCanceled,
   -1000: SamsungIapErrorKind.initializationFailed,
   -1001: SamsungIapErrorKind.storeUpdateRequired,
-  -1002: SamsungIapErrorKind.general,
   -1003: SamsungIapErrorKind.alreadyOwned,
   -1005: SamsungIapErrorKind.productNotFound,
   -1006: SamsungIapErrorKind.purchaseResultUnknown,
@@ -21,6 +20,17 @@ const Map<int, SamsungIapErrorKind> _sdkKinds = {
   -1015: SamsungIapErrorKind.accountNotSignedIn,
 };
 
+/// Samsung's server detail codes that name a specific kind. Samsung documents
+/// each under the -10xx code of that kind.
+const Map<int, SamsungIapErrorKind> _detailKinds = {
+  9201: SamsungIapErrorKind.productNotFound,
+  9202: SamsungIapErrorKind.productNotFound,
+  9207: SamsungIapErrorKind.productNotFound,
+  9224: SamsungIapErrorKind.alreadyOwned,
+  9134: SamsungIapErrorKind.notAvailableInCountry,
+  9259: SamsungIapErrorKind.notAvailableInCountry,
+};
+
 const Map<String, SamsungIapErrorKind> _pluginKinds = {
   'not_sent': SamsungIapErrorKind.busy,
   'not_initialized': SamsungIapErrorKind.notInitialized,
@@ -34,6 +44,11 @@ const Map<String, SamsungIapErrorKind> _pluginKinds = {
 ///
 /// `sdk` errors carry `ErrorVo` as a map in [PlatformException.details].
 /// Plugin errors carry a code from `_pluginKinds` and optional string details.
+///
+/// `ErrorVo` comes in two shapes. The payment screens return a -10xx code
+/// with the server code in the details, such as -1005 and `IS9207/...`.
+/// The service calls return the raw server code, such as 9201, and no
+/// details. Both become the same kind and [SamsungIapException.detailCode].
 SamsungIapException exceptionFromPlatform(PlatformException e) {
   if ((e.code, e.details) case (
     'sdk',
@@ -43,11 +58,18 @@ SamsungIapException exceptionFromPlatform(PlatformException e) {
       'dialogShown': final bool dialogShown,
     },
   )) {
+    // Galaxy Store's raw server codes are positive. HelperDefine codes are 0,
+    // 1 (canceled) and negative.
+    final isRawServerCode = code > 1;
+    final detailCode = isRawServerCode ? code : parseDetailCode(details);
+    final kind = isRawServerCode || code == -1002
+        ? _detailKinds[detailCode] ?? SamsungIapErrorKind.general
+        : _sdkKinds[code] ?? SamsungIapErrorKind.unknown;
     return SamsungIapException(
-      _sdkKinds[code] ?? SamsungIapErrorKind.unknown,
+      kind,
       message: e.message ?? '',
       code: code,
-      detailCode: parseDetailCode(details),
+      detailCode: detailCode,
       details: details,
       dialogShown: dialogShown,
     );
