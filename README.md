@@ -99,11 +99,15 @@ to the cheaper tier first, for example with the example app. Pass the cheaper ti
   plan-change codes (1005, 1006, 1012 and 1014), and prints it. Record the detail code in the test,
   where a TODO marks the place.
 
-Each run leaves the tester on the pricier tier, so put the tester back on the cheaper tier before
-you run the tests again. If Samsung ever accepts the downgrade, it may schedule a change for the
-next renewal instead of failing. Until that renewal, Samsung refuses further changes for the
-tester, and the upgrade test most likely fails with detail code 1014. Wait for the renewal, or use
-another license tester.
+Each run leaves the tester on the pricier tier. To reset it before the next run:
+
+1. In the example app, change the plan back to the cheaper tier with `deferred`, as in manual
+   check 11 below.
+2. Wait for the next renewal. In TEST mode, a subscription period is 10 minutes.
+
+Until that renewal, Samsung refuses further changes, and the upgrade test most likely fails with
+detail code 1014. The same applies if Samsung ever accepts the instant downgrade and schedules it
+for the renewal.
 
 ```sh
 flutter test integration_test/device_test.dart \
