@@ -128,7 +128,8 @@ flutter test integration_test/device_test.dart \
 
 The failure-mode tests run all seven Samsung calls in TEST_FAILURE mode, where Samsung fails every
 request on purpose. They need no product IDs and buy nothing. Each test expects `general` and prints
-the detail code. If `purchase` or `changeSubscriptionPlan` opens Samsung UI, close it.
+the detail code. The tests turn off Samsung's error dialogs and check that no error reports one. If
+`purchase` or `changeSubscriptionPlan` opens Samsung UI, close it.
 
 ```sh
 flutter test integration_test/failure_mode_test.dart
@@ -136,7 +137,8 @@ flutter test integration_test/failure_mode_test.dart
 
 Samsung documents a detail code for four of the calls, and the tests assert those codes. No device
 run has confirmed them yet. For the other three calls, the tests check only that a detail code is
-present. Record each code you observe in this table, and in the test, where a TODO marks the place.
+present, because a code Samsung does not document is not a contract. Record each code you observe in
+this table.
 
 | Call | Expected `detailCode` | Observed |
 |---|---|---|
@@ -177,9 +179,10 @@ Some checks cannot be automated. Do them by hand in the example app, which start
     enabled. Tap **Initialize**, **Get products**, **Get owned products** and **Buy** on a product.
     Close any Samsung sign-in prompt without signing in. Expect `accountNotSignedIn` with code
     -1014, which the 6.5.2 SDK binary defines, or -1015, which Samsung's docs list. Record which
-    code each call shows in section 9, S7, of `docs/research/samsung-iap-flutter-bridge.md`. If
-    every call shows the sign-in prompt instead of an error, record the mapping as unobservable
-    there. Sign in again as the license tester.
+    code each call shows on the next line. If every call shows the sign-in prompt instead of an
+    error, record the mapping as unobservable there. Sign in again as the license tester.
+
+    Observed: not run yet.
 13. Check that a free trial does not apply again, after a purchase and after a re-subscription. This
     step uses up the trial for the tester, so do it last, with the subscription you passed in
     `SAMSUNG_IAP_TRIAL_ID`. To run the promotion test again, use a different tester or a new

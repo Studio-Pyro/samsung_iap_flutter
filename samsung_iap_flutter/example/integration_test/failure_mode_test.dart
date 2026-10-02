@@ -12,7 +12,10 @@ void main() {
 
   const iap = SamsungIap();
 
-  setUpAll(() => iap.initialize(mode: OperationMode.testFailure));
+  setUpAll(
+    () =>
+        iap.initialize(mode: OperationMode.testFailure, showErrorDialog: false),
+  );
 
   // The detail code Samsung documents for each call, or null where it
   // documents none.
@@ -42,12 +45,10 @@ void main() {
         final result = await call();
         fail('$name succeeded in TEST_FAILURE mode: $result');
       } on SamsungIapException catch (e) {
-        // TODO(user): S7 acceptance #2. Record the detail code of each call
-        // in the root README, and assert it here where Samsung documents
-        // none.
         debugPrint('TEST_FAILURE $name: $e');
         expect(e.kind, SamsungIapErrorKind.general, reason: '$e');
         expect(e.detailCode, documented ?? isNotNull, reason: '$e');
+        expect(e.dialogShown, isFalse, reason: '$e');
       }
     }, timeout: const Timeout(Duration(minutes: 2)));
   }
