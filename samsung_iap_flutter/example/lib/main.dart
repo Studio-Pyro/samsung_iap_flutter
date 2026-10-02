@@ -45,7 +45,6 @@ class _HomePageState extends State<HomePage> {
   String? _planFrom;
   String? _planTo;
   ProrationMode _proration = ProrationMode.instantProratedDate;
-  String? _planChange;
   String? _error;
 
   Future<void> _run(Future<void> Function() action) async {
@@ -53,7 +52,8 @@ class _HomePageState extends State<HomePage> {
     try {
       await action();
     } on SamsungIapException catch (e) {
-      setState(() => _error = '${e.kind.name}: ${e.message}');
+      final detail = e.detailCode == null ? '' : ' (${e.detailCode})';
+      setState(() => _error = '${e.kind.name}$detail: ${e.message}');
     }
   }
 
@@ -76,54 +76,39 @@ class _HomePageState extends State<HomePage> {
     setState(() => _owned = owned);
   });
 
-  Future<void> _buy(SamsungProduct product) => _run(() async {
-    setState(() {
-      _purchase = null;
-      _buying = true;
-    });
-    try {
-      final purchase = await _iap.purchase(product.id);
-      setState(
-        () => _purchase =
-            'Bought ${purchase.productId}: purchase ${purchase.purchaseId}, '
-            'order ${purchase.orderId}',
-      );
-    } on SamsungIapException catch (e) {
-      if (e.kind != SamsungIapErrorKind.userCanceled) rethrow;
-      setState(() => _purchase = 'Cancelled');
-    } finally {
-      setState(() => _buying = false);
-    }
-  });
+  /// Runs [call], which shows Samsung's payment UI, and shows its outcome.
+  Future<void> _pay(String verb, Future<SamsungPurchase> Function() call) =>
+      _run(() async {
+        setState(() {
+          _purchase = null;
+          _buying = true;
+        });
+        try {
+          final purchase = await call();
+          setState(
+            () => _purchase =
+                '$verb ${purchase.productId}: purchase ${purchase.purchaseId}, '
+                'order ${purchase.orderId}',
+          );
+        } on SamsungIapException catch (e) {
+          if (e.kind != SamsungIapErrorKind.userCanceled) rethrow;
+          setState(() => _purchase = 'Cancelled');
+        } finally {
+          setState(() => _buying = false);
+        }
+      });
 
-  Future<void> _changePlan(String from, String to) => _run(() async {
-    setState(() {
-      _planChange = null;
-      _buying = true;
-    });
-    try {
-      final purchase = await _iap.changeSubscriptionPlan(
-        fromProductId: from,
-        toProductId: to,
-        prorationMode: _proration,
-      );
-      setState(
-        () => _planChange =
-            'Changed to ${purchase.productId}: purchase '
-            '${purchase.purchaseId}, order ${purchase.orderId}',
-      );
-    } on SamsungIapException catch (e) {
-      if (e.kind != SamsungIapErrorKind.userCanceled) {
-        setState(
-          () => _planChange = 'Plan change failed: detail code ${e.detailCode}',
-        );
-        rethrow;
-      }
-      setState(() => _planChange = 'Cancelled');
-    } finally {
-      setState(() => _buying = false);
-    }
-  });
+  Future<void> _buy(SamsungProduct product) =>
+      _pay('Bought', () => _iap.purchase(product.id));
+
+  Future<void> _changePlan(String from, String to) => _pay(
+    'Changed to',
+    () => _iap.changeSubscriptionPlan(
+      fromProductId: from,
+      toProductId: to,
+      prorationMode: _proration,
+    ),
+  );
 
   /// Runs [call], `consume` or `acknowledge`, on [product] and shows each
   /// result, then reloads the owned products to show the change.
@@ -196,7 +181,7 @@ class _HomePageState extends State<HomePage> {
                 child: Text('Buy ${product.formattedPrice}'),
               ),
             ),
-          if (subscriptions.isNotEmpty) ..._planChanger(subscriptions),
+          if (subscriptions.isNotEmpty) _planChanger(subscriptions),
           if (owned != null) Text('${owned.length} owned products'),
           for (final product in owned ?? const <OwnedProduct>[])
             ListTile(
@@ -224,7 +209,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   /// Picks two subscription tiers and a proration mode, and changes the plan.
-  List<Widget> _planChanger(List<String> subscriptions) {
+  Widget _planChanger(List<String> subscriptions) {
     final from = subscriptions.contains(_planFrom) ? _planFrom : null;
     final to = subscriptions.contains(_planTo) ? _planTo : null;
     DropdownButton<String> tier(
@@ -240,31 +225,28 @@ class _HomePageState extends State<HomePage> {
       ],
       onChanged: onChanged,
     );
-    return [
-      Wrap(
-        spacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          tier('From', from, (id) => setState(() => _planFrom = id)),
-          tier('To', to, (id) => setState(() => _planTo = id)),
-          DropdownButton(
-            value: _proration,
-            items: [
-              for (final mode in ProrationMode.values)
-                DropdownMenuItem(value: mode, child: Text(mode.name)),
-            ],
-            onChanged: (mode) => setState(() => _proration = mode!),
-          ),
-          FilledButton.tonal(
-            onPressed: from == null || to == null || _buying
-                ? null
-                : () => _changePlan(from, to),
-            child: const Text('Change plan'),
-          ),
-        ],
-      ),
-      if (_planChange case final result?) Text(result),
-    ];
+    return Wrap(
+      spacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        tier('From', from, (id) => setState(() => _planFrom = id)),
+        tier('To', to, (id) => setState(() => _planTo = id)),
+        DropdownButton(
+          value: _proration,
+          items: [
+            for (final mode in ProrationMode.values)
+              DropdownMenuItem(value: mode, child: Text(mode.name)),
+          ],
+          onChanged: (mode) => setState(() => _proration = mode!),
+        ),
+        FilledButton.tonal(
+          onPressed: from == null || to == null || _buying
+              ? null
+              : () => _changePlan(from, to),
+          child: const Text('Change plan'),
+        ),
+      ],
+    );
   }
 
   static String _describe(SamsungProduct product) => [
