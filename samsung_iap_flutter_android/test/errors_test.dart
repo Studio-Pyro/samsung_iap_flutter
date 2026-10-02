@@ -79,6 +79,7 @@ void main() {
       'IS9013': 9013,
       '100010': 100010,
       '1014 change requested/x': 1014,
+      'IS9224 then 6050/x': 9224,
       'abc/123': null,
       '/9224/6050': null,
       'IS/9224': null,
@@ -108,6 +109,7 @@ void main() {
       final e = await failWith(PlatformException(code: code));
 
       expect(e.kind, kind, reason: code);
+      expect(e.message, code);
       expect(e.code, isNull);
       expect(e.dialogShown, isFalse);
     }
