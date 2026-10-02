@@ -30,8 +30,8 @@ jobs:
   pana:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/pana.yml@v1
     with:
-      # ponytail: 40 is the score before the first publish. Raise it to 160 once the
-      # packages this one depends on are on pub.dev and main has the pubspec URLs.
+      # Below 160 until the first release. See PUBLISHING.md, "pana minimum
+      # scores".
       min_score: 40
       working_directory: samsung_iap_flutter
 

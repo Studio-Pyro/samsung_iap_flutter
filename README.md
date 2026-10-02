@@ -16,8 +16,8 @@ The plugin is a [federated plugin][federated_plugins_link] of three packages:
 
 | Package | What it owns |
 |---|---|
-| `samsung_iap_flutter_platform_interface` | Every public model, enum and `SamsungIapException`, the parsing rules, and the `SamsungIapFlutterPlatform` base class. |
-| `samsung_iap_flutter_android` | The Pigeon schema and its generated Dart and Kotlin code, the Kotlin plugin that calls Samsung IAP SDK 6.5.2, the Dart call queue, and the mapping from Pigeon types and error codes to the public types. |
+| `samsung_iap_flutter_platform_interface` | Every public model, enum and `SamsungIapException`, and the `SamsungIapFlutterPlatform` base class. |
+| `samsung_iap_flutter_android` | The Pigeon schema and its generated Dart and Kotlin code, the Kotlin plugin that calls Samsung IAP SDK 6.5.2, the Dart call queue, the parsing of the SDK's strings, and the mapping from Pigeon types and error codes to the public types. |
 | `samsung_iap_flutter` | The `SamsungIap` class that apps use. It checks arguments before it calls the platform, and it re-exports the platform interface. |
 
 A call from an app goes through these files:
@@ -55,9 +55,8 @@ example's.
 | `samsung_iap_flutter_android.yaml` | Changes to the android package or the example's `android/` | Analyzes, formats and tests the package. Runs pana. Checks that the Pigeon output is current, and runs the Kotlin unit tests. |
 | `samsung_iap_flutter.yaml` | Changes to any package | Analyzes, formats and tests the app-facing package. Runs pana. Runs `integration_test/app_test.dart` on an API 34 emulator. |
 
-pana resolves dependencies from pub.dev and checks each pubspec against the one on `main`. Until the
-packages are published, each pana job has a minimum score below 160. A comment on each job says when
-to raise it.
+The pana jobs have a minimum score below 160 until the first release. See
+[pana minimum scores](PUBLISHING.md#pana-minimum-scores).
 
 ## Integration tests
 
@@ -78,13 +77,9 @@ cd samsung_iap_flutter/example
 flutter test integration_test/app_test.dart
 ```
 
-Device tests must use the application ID that is registered in Seller Portal. Set it in
-`samsung_iap_flutter/example/android/local.properties`, which is not committed. Without this key, the
-example uses `dev.studiopyro.samsung_iap_flutter.example`.
-
-```properties
-samsungIap.applicationId=<package registered in Seller Portal>
-```
+Device tests must use the application ID that is registered in Seller Portal. Set it as
+[Run it on a Galaxy device](samsung_iap_flutter/example/README.md#run-it-on-a-galaxy-device)
+describes.
 
 Then run the device tests on the Samsung device. They use TEST mode, so sign in to Galaxy Store as a
 license tester. Pass the product IDs to fetch as a comma-separated list. Without the define, the

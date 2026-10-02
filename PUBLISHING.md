@@ -4,12 +4,10 @@ This document describes how to publish `samsung_iap_flutter` and its federated p
 [pub.dev][pub_dev_link] under the verified publisher `studiopyro.dev`.
 
 Because `samsung_iap_flutter` is a [federated plugin][federated_plugins_link], each package is
-published on its own, and the packages depend on each other by version. Each `pubspec.yaml` names
-its sibling packages by version, for example `samsung_iap_flutter_platform_interface: ^0.1.0`. A
-committed `pubspec_overrides.yaml` in the android package, the app-facing package and the example
-points those dependencies at the sources in this repository. pub leaves the package's own
-`pubspec_overrides.yaml` out of the archive, and `samsung_iap_flutter/.pubignore` leaves out the
-example's. You replace and restore nothing when you publish.
+published on its own, and the packages depend on each other by version. In this repository, the
+committed `pubspec_overrides.yaml` files point those versions at the local sources, as
+[Set up a checkout](README.md#set-up-a-checkout) describes. You replace and restore nothing when you
+publish.
 
 ## Packages
 
@@ -49,11 +47,13 @@ Do this once, before the first publish. Use one Google account for every step.
 
 ```sh
 cd samsung_iap_flutter_platform_interface && flutter pub publish --dry-run
+cd ../samsung_iap_flutter_android && flutter pub publish --dry-run
+cd ../samsung_iap_flutter && flutter pub publish --dry-run
 ```
 
 The dry run of the android and app-facing packages reports that non-dev dependencies are
-overridden in `pubspec_overrides.yaml`, once for each overridden package. That hint is expected. Resolve every other warning or error
-before you continue.
+overridden in `pubspec_overrides.yaml`, once for each overridden package. That hint is expected.
+Resolve every other warning or error before you continue.
 
 ## Publishing order
 
@@ -75,10 +75,21 @@ flutter pub publish
 
 1. Open each new package on pub.dev. In its **Admin** tab, transfer it to the `studiopyro.dev`
    publisher. A package that already belongs to the publisher needs no transfer.
-2. After the first release, raise `min_score` of the `pana` job to 160 in
-   `.github/workflows/samsung_iap_flutter_platform_interface.yaml`,
-   `.github/workflows/samsung_iap_flutter_android.yaml` and
-   `.github/workflows/samsung_iap_flutter.yaml`.
+2. Raise the pana minimum scores, as [pana minimum scores](#pana-minimum-scores) describes.
+
+## pana minimum scores
+
+pana resolves each package's dependencies from pub.dev, and it checks the pubspec `repository` URL
+against the pubspec on `main`. Until both work, a package cannot reach 160 points, so each `pana`
+job in `.github/workflows/` has a lower `min_score`:
+
+- `samsung_iap_flutter_platform_interface.yaml` has 150. The platform interface loses 10 points only
+  while the pubspec on `main` has no `repository` URL. A pull request's pana run reads `main`, not
+  the pull request, so the pull request that adds the URL cannot pass 160 itself. Raise the minimum
+  to 160 in the next pull request after that one merges.
+- `samsung_iap_flutter_android.yaml` and `samsung_iap_flutter.yaml` have 40. pana cannot resolve
+  their sibling dependencies until those are on pub.dev. Raise each minimum to 160 after the first
+  release.
 
 For more information about publishing Dart and Flutter packages, see Flutter's
 [official documentation on publishing packages][publishing_packages_link] and the pub.dev page on

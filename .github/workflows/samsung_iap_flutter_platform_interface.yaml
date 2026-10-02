@@ -26,7 +26,7 @@ jobs:
   pana:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/pana.yml@v1
     with:
-      # ponytail: pana checks the repository URL against the pubspec on main, which
-      # costs 10 points until main has it. Raise this to 160 then.
+      # Below 160 until main has the pubspec repository URL. See
+      # PUBLISHING.md, "pana minimum scores".
       min_score: 150
       working_directory: samsung_iap_flutter_platform_interface
