@@ -7,8 +7,10 @@ export 'package:samsung_iap_flutter_platform_interface/samsung_iap_flutter_platf
 
 /// Samsung In-App Purchase on Galaxy Store.
 ///
-/// Every method throws [SamsungIapException] on failure. Create it with
-/// `const SamsungIap()`, or replace it with a mock in tests.
+/// Every method throws [SamsungIapException] on failure. Its
+/// [SamsungIapException.kind] tells the app what to do, as each
+/// [SamsungIapErrorKind] describes. Create it with `const SamsungIap()`, or
+/// replace it with a mock in tests.
 class SamsungIap {
   /// Creates the client. It holds no state.
   const new();
@@ -34,11 +36,9 @@ class SamsungIap {
   /// Fetches the products with [productIds], or every product when it is
   /// empty. The order of the result is not guaranteed.
   ///
-  /// Throws a [SamsungIapException] of kind
-  /// [SamsungIapErrorKind.invalidArgument] for an empty ID or one that
-  /// contains a comma, [SamsungIapErrorKind.storeUnavailable] when Galaxy
-  /// Store is not usable, and [SamsungIapErrorKind.network] when Samsung does
-  /// not answer within 30 seconds.
+  /// Throws [SamsungIapErrorKind.invalidArgument] for an empty ID or one that
+  /// contains a comma, and [SamsungIapErrorKind.network] when Samsung does not
+  /// answer within 30 seconds. See [SamsungIapErrorKind] for the other kinds.
   Future<List<SamsungProduct>> getProducts([
     List<String> productIds = const [],
   ]) async {
@@ -54,10 +54,8 @@ class SamsungIap {
   /// [OwnedProduct] are device-local and approximate. Verify entitlement
   /// windows against Samsung's server receipt.
   ///
-  /// Throws a [SamsungIapException] of kind
-  /// [SamsungIapErrorKind.storeUnavailable] when Galaxy Store is not usable,
-  /// and [SamsungIapErrorKind.network] when Samsung does not answer within 30
-  /// seconds.
+  /// Throws [SamsungIapErrorKind.network] when Samsung does not answer within
+  /// 30 seconds. See [SamsungIapErrorKind] for the other kinds.
   Future<List<OwnedProduct>> getOwnedProducts({
     OwnedProductFilter filter = OwnedProductFilter.all,
   }) => _platform.getOwnedProducts(filter);
@@ -70,19 +68,9 @@ class SamsungIap {
   /// IDs, at most 64 bytes in UTF-8 and not an email address. A profile ID
   /// needs an account ID.
   ///
-  /// Throws a [SamsungIapException]. Its kind tells the app what to do:
-  ///
-  /// - [SamsungIapErrorKind.userCanceled]: the user closed the sheet. Not an
-  ///   error, so show nothing.
-  /// - [SamsungIapErrorKind.alreadyOwned],
-  ///   [SamsungIapErrorKind.purchaseResultUnknown] and
-  ///   [SamsungIapErrorKind.network]: the user may own the product. Call
-  ///   [getOwnedProducts] and grant what it returns before telling the user
-  ///   anything. After `network`, retry only if the product is not owned.
-  /// - [SamsungIapErrorKind.busy]: Samsung refused to start, so nothing was
-  ///   charged. Retry after a short wait.
-  /// - [SamsungIapErrorKind.invalidArgument]: an empty product ID, or an
-  ///   obfuscated ID that breaks the rules above. Nothing is sent to Samsung.
+  /// Throws [SamsungIapErrorKind.invalidArgument] for an empty product ID, or
+  /// an obfuscated ID that breaks the rules above. See [SamsungIapErrorKind]
+  /// for the other kinds.
   Future<SamsungPurchase> purchase(
     String productId, {
     String? obfuscatedAccountId,
@@ -105,18 +93,13 @@ class SamsungIap {
   /// so check each result. [PurchaseAckResult.isProcessed] is `true` for a
   /// purchase that is done, including one that an earlier call handled.
   ///
-  /// Throws a [SamsungIapException] when the call as a whole fails. Its kind
-  /// is one of these:
-  ///
-  /// - [SamsungIapErrorKind.invalidArgument] for an empty list, an empty ID
-  ///   or one that contains a comma.
-  /// - [SamsungIapErrorKind.storeUnavailable] when Galaxy Store is not usable.
-  /// - [SamsungIapErrorKind.general] with [SamsungIapException.detailCode]
-  ///   9226 when Samsung rejects a purchase ID for the whole batch.
-  /// - [SamsungIapErrorKind.network] when Samsung does not answer within 30
-  ///   seconds. Unlike a failed [purchase], this is safe to retry as is.
-  ///   Samsung may still apply a call that timed out, and the retry then
-  ///   reports [AckStatus.alreadyProcessed].
+  /// Throws a [SamsungIapException] only when the call as a whole fails. It
+  /// throws [SamsungIapErrorKind.invalidArgument] for an empty list, an empty
+  /// ID or one that contains a comma, [SamsungIapErrorKind.general] with
+  /// [SamsungIapException.detailCode] 9226 when Samsung rejects a purchase ID
+  /// for the whole batch, and [SamsungIapErrorKind.network] when Samsung does
+  /// not answer within 30 seconds. See [SamsungIapErrorKind] for the other
+  /// kinds.
   Future<List<PurchaseAckResult>> consume(List<String> purchaseIds) async {
     _checkIdBatch('purchase', purchaseIds);
     return await _platform.consume(purchaseIds);
@@ -148,18 +131,15 @@ class SamsungIap {
   /// receipt shows the new one. The obfuscated IDs follow the same rules as
   /// in [purchase].
   ///
-  /// Throws a [SamsungIapException] with the same kinds as [purchase].
-  /// Samsung reports a change it rejects as [SamsungIapErrorKind.general],
-  /// and [SamsungIapException.detailCode] tells why:
+  /// Throws a [SamsungIapException] with the same kinds as [purchase]. See
+  /// [SamsungIapErrorKind] for what to do on each. Samsung reports a change
+  /// it rejects as [SamsungIapErrorKind.general], and
+  /// [SamsungIapException.detailCode] tells why:
   ///
   /// - 1005: the subscription [fromProductId] does not exist.
   /// - 1006: the user is not subscribed to [fromProductId].
   /// - 1012: [toProductId] is not a subscription.
   /// - 1014: a change was already requested.
-  ///
-  /// After a [SamsungIapErrorKind.network] or
-  /// [SamsungIapErrorKind.purchaseResultUnknown] failure, call
-  /// [getOwnedProducts] before you retry. The change may have gone through.
   Future<SamsungPurchase> changeSubscriptionPlan({
     required String fromProductId,
     required String toProductId,
@@ -187,11 +167,10 @@ class SamsungIap {
   /// Match the results to your products by [PromotionEligibility.productId].
   /// Their order is not guaranteed.
   ///
-  /// Throws a [SamsungIapException] of kind
-  /// [SamsungIapErrorKind.invalidArgument] for an empty list, an empty ID or
-  /// one that contains a comma, [SamsungIapErrorKind.storeUnavailable] when
-  /// Galaxy Store is not usable, and [SamsungIapErrorKind.network] when
-  /// Samsung does not answer within 30 seconds.
+  /// Throws [SamsungIapErrorKind.invalidArgument] for an empty list, an empty
+  /// ID or one that contains a comma, and [SamsungIapErrorKind.network] when
+  /// Samsung does not answer within 30 seconds. See [SamsungIapErrorKind] for
+  /// the other kinds.
   Future<List<PromotionEligibility>> getPromotionEligibility(
     List<String> subscriptionIds,
   ) async {
