@@ -53,8 +53,11 @@ class _HomePageState extends State<HomePage> {
     try {
       await action();
     } on SamsungIapException catch (e) {
-      final detail = e.detailCode == null ? '' : ' (${e.detailCode})';
-      setState(() => _error = '${e.kind.name}$detail: ${e.message}');
+      setState(
+        () => _error =
+            '${e.kind.name} (code ${e.code}, detail ${e.detailCode}): '
+            '${e.message}',
+      );
     }
   }
 

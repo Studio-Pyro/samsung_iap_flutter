@@ -54,16 +54,19 @@ const ackResults = [
 ];
 
 /// A Samsung error for the whole call, as the Kotlin bridge sends it.
-PlatformException sdkError(int code, {String details = ''}) =>
-    PlatformException(
-      code: 'sdk',
-      message: 'Samsung says no.',
-      details: {
-        'errorCode': code,
-        'errorDetails': details,
-        'dialogShown': false,
-      },
-    );
+PlatformException sdkError(
+  int code, {
+  String? details = '',
+  bool dialogShown = false,
+}) => PlatformException(
+  code: 'sdk',
+  message: 'Samsung says no.',
+  details: {
+    'errorCode': code,
+    'errorDetails': details,
+    'dialogShown': dialogShown,
+  },
+);
 
 /// A `PurchaseVo` mirror with every field set.
 PlatformPurchase purchaseWire({

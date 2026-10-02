@@ -63,16 +63,18 @@ class GuardedSdkCallsTest : PluginTestBase() {
             verify(helper, never()).let(guarded.sdk)
         },
         "throws the SDK error" to { guarded ->
-            answer(guarded) { guarded.callBack(it, errorVo(-1005), null) }
+            for (dialogShown in listOf(true, false)) {
+                answer(guarded) { guarded.callBack(it, errorVo(-1005, dialogShown), null) }
 
-            val error = assertFailsWith<FlutterError> { guarded.call(initializedPlugin()) }
+                val error = assertFailsWith<FlutterError> { guarded.call(initializedPlugin()) }
 
-            assertEquals("sdk", error.code)
-            assertEquals("Product does not exist.", error.message)
-            assertEquals(
-                mapOf("errorCode" to -1005, "errorDetails" to "IS9207/6050/x", "dialogShown" to true),
-                error.details,
-            )
+                assertEquals("sdk", error.code)
+                assertEquals("Product does not exist.", error.message)
+                assertEquals(
+                    mapOf("errorCode" to -1005, "errorDetails" to "IS9207/6050/x", "dialogShown" to dialogShown),
+                    error.details,
+                )
+            }
         },
         "fails at once on a success with a null value" to { guarded ->
             failsAtOnce(guarded, errorVo(0))

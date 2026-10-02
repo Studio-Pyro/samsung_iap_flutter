@@ -675,15 +675,16 @@ final class SamsungIapException implements Exception {
 | -1003 (9224) | `alreadyOwned` | Call `getOwnedProducts` and grant or ack |
 | -1005 (9202/9207), -1007 (9201) | `productNotFound` | Config problem: product ID, mode, activation, distribution country [H] |
 | -1012 (9134), -1013 (9259) | `notAvailableInCountry` | Hide the store UI |
-| -1008, -1009, -1010, -1011 | `network` | Retryable |
+| -1008, -1009, -1010, -1011, `timeout` | `network` | Retry inquiries, consume and ack. After `purchase` or a plan change, reconcile with `getOwnedProducts` first, because the user may have paid |
 | -1000 | `initializationFailed` | Retryable (10011 says "Try again") [H] |
 | -1001, `store_update_required` | `storeUpdateRequired` | Deep-link to Galaxy Store |
 | `store_unavailable` | `storeUnavailable` | Galaxy build on a device without a valid Galaxy Store |
 | -1014 (AAR), -1015 (docs) | `accountNotSignedIn` | Prompt Samsung account sign-in |
-| -1006 `IAP_ERROR_CONFIRM_INBOX` | `purchaseResultUnknown` | **Must** call `getOwnedProducts` or the server; the purchase may have succeeded [H] |
-| `not_sent` | `busy` | Only reachable across engines once the Dart queue exists; retry |
+| -1006 `IAP_ERROR_CONFIRM_INBOX`, `result_unknown` | `purchaseResultUnknown` | **Must** call `getOwnedProducts` or the server; the purchase may have succeeded [H] |
+| `not_sent` | `busy` | The SDK refused to start the call, before any UI, for example while it finishes one that timed out. Retry |
+| `not_initialized` | `notInitialized` | Programmer error. Call `initialize` first |
 | Dart validation | `invalidArgument` | Programmer error |
-| -1002 `IAP_ERROR_COMMON` | `general` | Switch on `detailCode`: 100010 not a license tester, 7002 suspicious transaction, 1005/1006/1012/1014 plan-change problems, 9000–9014 TEST_FAILURE mode |
+| -1002 `IAP_ERROR_COMMON` | `general` | Switch on `detailCode`: 100010 not a license tester, 7002 suspicious transaction, 1005/1006/1012/1014 plan-change problems, 9226 invalid consume purchase ID, 9000/9005/9013/9014 TEST_FAILURE mode |
 | -1004 and anything else | `unknown` | Keep `code` for logs |
 
 **Partial failure in consume/ack:** the call-level `ErrorVo` != 0 → throw. Otherwise return a per-item `PurchaseAckResult` list; items can fail individually (status 1–9) even though the call succeeded [H §Notify]. `alreadyProcessed` (4) should count as success for idempotent retry loops (**Inference**).
@@ -816,11 +817,12 @@ Each slice ships on its own: all three packages build, tests pass, and the examp
 
 ### S7: Error hardening
 - **Scope:** the full §7 table; `detailCode` parsing; the `dialogShown` flag; the TEST_FAILURE device run; doc comments on every kind.
-- **Files:** `and/lib/src/errors.dart`, `pi/lib/src/models/exception.dart`, tests.
+- **Files:** `and/lib/src/errors.dart`, `pi/lib/src/exception.dart`, tests.
 - **Acceptance:**
   - Each §7 row has a unit test.
-  - A TEST_FAILURE device run shows the expected detail code for all four operations.
+  - A TEST_FAILURE device run shows the expected detail code for all seven calls: `getProducts`, `getOwnedProducts`, `purchase`, `consume`, `acknowledge`, `changeSubscriptionPlan` and `getPromotionEligibility`. Samsung documents codes for the first four only (§2.4).
   - The -1014/-1015 mapping is confirmed on a device signed out of the Samsung account, or recorded as unobservable.
+  - Both device results are recorded in the root README, under "Integration tests".
 - **Tests:** table-driven.
 
 ### S8: Docs, example, publishing
@@ -888,7 +890,7 @@ Rejected alternative: verifying purchases on our own backend and mirroring them 
 | 2 | Error model | One `SamsungIapException` with a `kind` enum, plus the raw `code`, `message` and `dialogShown`. Dart 3 `switch` over the enum gives exhaustiveness. |
 | 3 | `showErrorDialog` | Defaults to `true`, matching the SDK. Apps that own their UI pass `false`. `dialogShown` prevents double messaging. |
 | 4 | Store pre-check | Use the SDK's `HelperUtil.isInstalledAppsPackage` / `isEnabledAppsPackage` / `isValidAppsPackage`. These avoid the dialog side effect and include the signature check. A removed helper breaks the build, so it shows up when the SDK is bumped. The SDK is pinned to exactly `6.5.2`. The plugin never triggers Samsung's install/enable dialog itself; it exposes `storeStatus()`. |
-| 4b | Timeouts | A fixed 30s timeout on inquiry calls (`getProducts`, `getOwnedProducts`, promotion eligibility), as a backstop against callbacks that never arrive. There is no timeout on `purchase` or plan change, because users can stay on the payment UI indefinitely and those calls return `false` instead of hanging. Not configurable. |
+| 4b | Timeouts | A fixed 30s timeout on inquiry calls (`getProducts`, `getOwnedProducts`, promotion eligibility) and on `consume` and `acknowledge`, as a backstop against callbacks that never arrive. There is no timeout on `purchase` or plan change, because users can stay on the payment UI indefinitely and those calls return `false` instead of hanging. Not configurable. |
 | 5 | Template leftovers | Delete `MethodChannelSamsungIapFlutter` and the Fluttium example flows. Pigeon and `integration_test` replace them. |
 | 6 | Deprecated fields | `isConsumable` and `passThroughParam` are not exposed. `rawJson` carries them. |
 | 7 | Consume/acknowledge | Both are in the plugin (S4). The README explains how to choose per product, and also describes the server-side alternative [API-ACK]. |
