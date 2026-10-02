@@ -40,6 +40,7 @@ class _HomePageState extends State<HomePage> {
   List<SamsungProduct>? _products;
   List<OwnedProduct>? _owned;
   String? _purchase;
+  bool _buying = false;
   String? _error;
 
   Future<void> _run(Future<void> Function() action) async {
@@ -71,7 +72,10 @@ class _HomePageState extends State<HomePage> {
   });
 
   Future<void> _buy(SamsungProduct product) => _run(() async {
-    setState(() => _purchase = null);
+    setState(() {
+      _purchase = null;
+      _buying = true;
+    });
     try {
       final purchase = await _iap.purchase(product.id);
       setState(
@@ -82,6 +86,8 @@ class _HomePageState extends State<HomePage> {
     } on SamsungIapException catch (e) {
       if (e.kind != SamsungIapErrorKind.userCanceled) rethrow;
       setState(() => _purchase = 'Cancelled');
+    } finally {
+      setState(() => _buying = false);
     }
   });
 
@@ -128,7 +134,7 @@ class _HomePageState extends State<HomePage> {
               title: Text(product.name),
               subtitle: Text(_describe(product)),
               trailing: FilledButton.tonal(
-                onPressed: () => _buy(product),
+                onPressed: _buying ? null : () => _buy(product),
                 child: Text('Buy ${product.formattedPrice}'),
               ),
             ),
