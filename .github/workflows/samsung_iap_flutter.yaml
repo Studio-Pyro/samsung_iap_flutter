@@ -28,7 +28,7 @@ jobs:
       working_directory: samsung_iap_flutter
 
   pana:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/pana.yml@v1
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/pana.yml@v2
     with:
       # Below 160 until the first release. See PUBLISHING.md, "pana minimum
       # scores".
